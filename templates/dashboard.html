@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Network Data Visualization</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+            crossorigin="anonymous"
+        />
+
+        <style>
+            .chart-container {
+                height: 400px;
+                margin: 20px 0;
+            }
+            .stat-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .network-card {
+                transition: transform 0.2s;
+            }
+            .network-card:hover {
+                transform: translateY(-2px);
+            }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container">
+                <a class="navbar-brand" href="/">Network Analytics</a>
+                <div class="navbar-nav">
+                    <a class="nav-link" href="/">Dashboard</a>
+                    <a class="nav-link" href="/networks">Networks</a>
+                    <a class="nav-link" href="/analytics">Analytics</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Networks</h5>
+                            <h2>{{ stats.total_networks }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Network Types</h5>
+                            <h2>{{ stats.network_types|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Policy Types</h5>
+                            <h2>{{ stats.policy_types|length }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Global Scope</h5>
+                            <h2>{{ stats.scopes.get('Global', 0) }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Network Types Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="networkTypesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>IPv4 vs IPv6 Prefixes</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="prefixesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Recent Networks</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for network in networks %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card network-card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title">
+                                                {{ network.name }}
+                                            </h6>
+                                            <p class="card-text">
+                                                <small class="text-muted"
+                                                    >ASN: {{ network.asn
+                                                    }}</small
+                                                ><br />
+                                                <span class="badge bg-primary"
+                                                    >{{ network.info_type or
+                                                    'Unknown' }}</span
+                                                >
+                                                <span class="badge bg-secondary"
+                                                    >{{ network.policy_general
+                                                    or 'Unknown' }}</span
+                                                >
+                                            </p>
+                                            {% if network.website %}
+                                            <a
+                                                href="{{ network.website }}"
+                                                class="btn btn-sm btn-outline-primary"
+                                                target="_blank"
+                                                >Visit</a
+                                            >
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Network Types Chart
+            fetch("/api/network-types")
+                .then((response) => response.json())
+                .then((data) => {
+                    const ctx = document
+                        .getElementById("networkTypesChart")
+                        .getContext("2d");
+                    new Chart(ctx, {
+                        type: "pie",
+                        data: {
+                            labels: data.labels,
+                            datasets: [
+                                {
+                                    data: data.data,
+                                    backgroundColor: [
+                                        "#FF6384",
+                                        "#36A2EB",
+                                        "#FFCE56",
+                                        "#4BC0C0",
+                                        "#9966FF",
+                                        "#FF9F40",
+                                        "#FF6384",
+                                        "#C9CBCF",
+                                    ],
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: "bottom",
+                                },
+                            },
+                        },
+                    });
+                });
+
+            // Prefixes Chart
+            fetch("/api/prefixes-distribution")
+                .then((response) => response.json())
+                .then((data) => {
+                    const ctx = document
+                        .getElementById("prefixesChart")
+                        .getContext("2d");
+                    new Chart(ctx, {
+                        type: "bar",
+                        data: {
+                            labels: data.networks,
+                            datasets: [
+                                {
+                                    label: "IPv4 Prefixes",
+                                    data: data.ipv4,
+                                    backgroundColor: "#36A2EB",
+                                },
+                                {
+                                    label: "IPv6 Prefixes",
+                                    data: data.ipv6,
+                                    backgroundColor: "#FF6384",
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    ticks: {
+                                        maxRotation: 45,
+                                    },
+                                },
+                            },
+                        },
+                    });
+                });
+        </script>
+    </body>
+</html>

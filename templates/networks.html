@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Networks - Network Data Visualization</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+            crossorigin="anonymous"
+        />
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+            crossorigin="anonymous"
+        ></script>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container">
+                <a class="navbar-brand" href="/">Network Analytics</a>
+                <div class="navbar-nav">
+                    <a class="nav-link" href="/">Dashboard</a>
+                    <a class="nav-link active" href="/networks">Networks</a>
+                    <a class="nav-link" href="/analytics">Analytics</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>All Networks</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>ASN</th>
+                                            <th>Type</th>
+                                            <th>IPv4 Prefixes</th>
+                                            <th>IPv6 Prefixes</th>
+                                            <th>IX Count</th>
+                                            <th>Facility Count</th>
+                                            <th>Policy</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for network in networks %}
+                                        <tr>
+                                            <td>
+                                                <strong
+                                                    >{{ network.name }}</strong
+                                                >
+                                                {% if network.aka %}
+                                                <br /><small class="text-muted"
+                                                    >{{ network.aka }}</small
+                                                >
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ network.asn }}</td>
+                                            <td>
+                                                <span class="badge bg-primary"
+                                                    >{{ network.info_type or
+                                                    'Unknown' }}</span
+                                                >
+                                            </td>
+                                            <td>
+                                                {{
+                                                "{:,}".format(network.info_prefixes4)
+                                                if network.info_prefixes4 else
+                                                'N/A' }}
+                                            </td>
+                                            <td>
+                                                {{
+                                                "{:,}".format(network.info_prefixes6)
+                                                if network.info_prefixes6 else
+                                                'N/A' }}
+                                            </td>
+                                            <td>{{ network.ix_count or 0 }}</td>
+                                            <td>
+                                                {{ network.fac_count or 0 }}
+                                            </td>
+                                            <td>
+                                                {% if network.policy_general ==
+                                                'Open' %}
+                                                <span class="badge bg-success"
+                                                    >{{ network.policy_general
+                                                    }}</span
+                                                >
+                                                {% elif network.policy_general
+                                                == 'Restrictive' %}
+                                                <span class="badge bg-warning"
+                                                    >{{ network.policy_general
+                                                    }}</span
+                                                >
+                                                {% else %}
+                                                <span class="badge bg-secondary"
+                                                    >{{ network.policy_general
+                                                    or 'Unknown' }}</span
+                                                >
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if network.status == 'ok' %}
+                                                <span class="badge bg-success"
+                                                    >OK</span
+                                                >
+                                                {% else %}
+                                                <span class="badge bg-danger"
+                                                    >{{ network.status }}</span
+                                                >
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

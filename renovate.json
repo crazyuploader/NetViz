@@ -1,8 +1,6 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": [
-        "config:recommended"
-    ],
+    "extends": ["config:recommended"],
     "automerge": true,
     "rebaseWhen": "conflicted",
     "recreateWhen": "auto",
@@ -12,9 +10,7 @@
     },
     "packageRules": [
         {
-            "matchManagers": [
-                "pep621"
-            ],
+            "matchManagers": ["pep621"],
             "automerge": true,
             "groupName": "Main dependencies",
             "matchPackageNames": [
@@ -40,17 +36,12 @@
             ],
             "automerge": true,
             "groupName": "Dev dependencies",
-            "addLabels": [
-                "dev-dependencies"
-            ]
+            "addLabels": ["dev-dependencies"]
         }
     ],
     "rangeStrategy": "bump",
     "separateMajorMinor": true,
-    "labels": [
-        "dependencies",
-        "python"
-    ],
+    "labels": ["dependencies", "python"],
     "platformAutomerge": true,
     "automergeType": "branch",
     "prHourlyLimit": 3,
