@@ -1,3 +1,5 @@
+"""Data loading and processing for network visualization."""
+
 import json
 
 
