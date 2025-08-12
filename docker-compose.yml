@@ -1,0 +1,11 @@
+services:
+    netviz:
+        image: ghcr.io/crazyuploader/netviz:latest
+        volumes:
+            - ./data:/app/data
+        ports:
+            - "${HOST:-127.0.0.1}:8201:8201"
+        restart: unless-stopped
+        logging:
+            options:
+                max-size: 256m
