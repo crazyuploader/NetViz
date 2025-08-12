@@ -1,6 +1,7 @@
 services:
     netviz:
-        image: ghcr.io/crazyuploader/netviz:latest
+        build:
+            context: .
         volumes:
             - ./data:/app/data
         ports:
