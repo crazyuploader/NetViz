@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Networks - Network Data Visualization</title>
+        <title>Search Networks - Network Data Visualization</title>
 
         <!-- Bootstrap 5.3.2 (latest stable) -->
         <link
@@ -283,92 +283,6 @@
                 font-size: 0.8125rem;
             }
 
-            /* Modern Pagination */
-            .modern-pagination {
-                background: white;
-                border-radius: var(--border-radius);
-                box-shadow: var(--card-shadow);
-                padding: 1.5rem;
-                margin-top: 1.5rem;
-            }
-
-            .pagination {
-                margin: 0;
-                justify-content: center;
-                gap: 0.25rem;
-            }
-
-            .page-link {
-                border: 2px solid transparent;
-                border-radius: 0.5rem;
-                padding: 0.5rem 0.875rem;
-                color: var(--secondary-color);
-                font-weight: 500;
-                transition: all 0.2s ease;
-                margin: 0;
-            }
-
-            .page-link:hover {
-                background-color: #f8fafc;
-                border-color: #e2e8f0;
-                color: var(--primary-color);
-                transform: translateY(-1px);
-            }
-
-            .page-item.active .page-link {
-                background-color: var(--primary-color);
-                border-color: var(--primary-color);
-                color: white;
-                box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
-            }
-
-            .page-item.disabled .page-link {
-                color: #cbd5e1;
-                background-color: transparent;
-                border-color: transparent;
-            }
-
-            /* Table Summary */
-            .table-summary {
-                background: #f8fafc;
-                border-radius: 0.5rem;
-                padding: 1rem;
-                margin-bottom: 1rem;
-                border: 1px solid #e2e8f0;
-            }
-
-            .table-summary-text {
-                color: var(--secondary-color);
-                font-size: 0.875rem;
-                margin: 0;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            /* Table Actions */
-            .table-actions {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                margin-bottom: 1rem;
-            }
-
-            .results-per-page {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                font-size: 0.875rem;
-                color: var(--secondary-color);
-            }
-
-            .results-per-page select {
-                border: 1px solid #e2e8f0;
-                border-radius: 0.375rem;
-                padding: 0.25rem 0.5rem;
-                font-size: 0.875rem;
-            }
-
             /* Responsive adjustments */
             @media (max-width: 768px) {
                 .table-responsive {
@@ -420,13 +334,13 @@
                         <a class="nav-link" href="/">
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
-                        <a class="nav-link active" href="/networks">
+                        <a class="nav-link" href="/networks">
                             <i class="bi bi-network-wired"></i> Networks
                         </a>
                         <a class="nav-link" href="/analytics">
                             <i class="bi bi-graph-up"></i> Analytics
                         </a>
-                        <a class="nav-link" href="/search">
+                        <a class="nav-link active" href="/search">
                             <i class="bi bi-search"></i> Search
                         </a>
                     </div>
@@ -436,102 +350,64 @@
 
         <!-- Main Content -->
         <div class="container-fluid px-4 py-4">
-            <!-- Search and Filter Bar -->
+            <!-- Search Form -->
             <div class="filter-bar">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span
-                                class="input-group-text bg-white border-end-0"
+                <form action="/search" method="get">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="asnInput" class="form-label"
+                                >AS Number</label
                             >
-                                <i class="bi bi-search text-muted"></i>
-                            </span>
                             <input
-                                type="text"
-                                class="form-control search-input border-start-0 ps-0"
-                                placeholder="Search networks by name, ASN, or type..."
-                                id="searchInput"
+                                type="number"
+                                class="form-control search-input"
+                                id="asnInput"
+                                name="asn"
+                                value="{{ query_asn if query_asn is not none else '' }}"
+                                placeholder="e.g., 6453"
                             />
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <select
-                                    class="form-select form-select-sm"
-                                    id="typeFilter"
-                                >
-                                    <option value="">All Types</option>
-                                    <option value="ISP">ISP</option>
-                                    <option value="Content">Content</option>
-                                    <option value="Enterprise">
-                                        Enterprise
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <select
-                                    class="form-select form-select-sm"
-                                    id="policyFilter"
-                                >
-                                    <option value="">All Policies</option>
-                                    <option value="Open">Open</option>
-                                    <option value="Restrictive">
-                                        Restrictive
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <select
-                                    class="form-select form-select-sm"
-                                    id="statusFilter"
-                                >
-                                    <option value="">All Status</option>
-                                    <option value="ok">OK</option>
-                                    <option value="error">Error</option>
-                                </select>
-                            </div>
+                        <div class="col-md-6">
+                            <label for="nameInput" class="form-label"
+                                >Network Name</label
+                            >
+                            <input
+                                type="text"
+                                class="form-control search-input"
+                                id="nameInput"
+                                name="name"
+                                value="{{ query_name if query_name is not none else '' }}"
+                                placeholder="e.g., Google"
+                            />
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search me-2"></i>Search
+                            </button>
                         </div>
                     </div>
-                </div>
+                </form>
             </div>
 
-            <!-- Networks Table -->
+            <!-- Search Results Table -->
             <div class="modern-card">
                 <div class="card-header">
                     <h5>
                         <i class="bi bi-table text-primary"></i>
-                        All Networks
+                        Search Results
                     </h5>
                 </div>
                 <div class="card-body p-0">
-                    <!-- Table Summary -->
+                    {% if results %}
                     <div class="table-summary mx-3 mt-3">
                         <div class="table-actions">
                             <p class="table-summary-text">
                                 <i class="bi bi-info-circle"></i>
-                                Showing {{ ((page - 1) * per_page + 1) if
-                                networks else 0 }} to {{ (page * per_page) if
-                                (page * per_page) < total_networks else
-                                total_networks }} of {{ total_networks }}
-                                networks
+                                Found {{ results|length }} network(s) matching
+                                your search.
                             </p>
-                            <div class="results-per-page">
-                                <label for="perPageSelect">Show:</label>
-                                <select
-                                    id="perPageSelect"
-                                    class="form-select form-select-sm"
-                                >
-                                    <option value="25">25</option>
-                                    <option value="50">50</option>
-                                    <option value="100">100</option>
-                                </select>
-                                <span>per page</span>
-                            </div>
                         </div>
                     </div>
-
-                    <!-- Table -->
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -575,7 +451,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for network in networks %}
+                                {% for network in results %}
                                 <tr>
                                     <td>
                                         <div>
@@ -681,83 +557,13 @@
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                    <div class="alert alert-info m-3" role="alert">
+                        No networks found matching your criteria. Please try a
+                        different search.
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
-
-            <!-- Modern Pagination -->
-            <div class="modern-pagination">
-                <nav aria-label="Networks pagination">
-                    <ul class="pagination">
-                        <li
-                            class="page-item {% if page == 1 %}disabled{% endif %}"
-                        >
-                            <a
-                                class="page-link"
-                                href="{{ url_for('networks_list', page=page-1, per_page=per_page) }}"
-                                aria-label="Previous"
-                            >
-                                <i class="bi bi-chevron-left"></i>
-                            </a>
-                        </li>
-
-                        {% set num_display_pages = 5 %} {% set start_page = [1,
-                        page - (num_display_pages // 2)]|max %} {% set end_page
-                        = [total_pages, page + (num_display_pages // 2)]|min %}
-                        {% if start_page > 1 %}
-                        <li class="page-item">
-                            <a
-                                class="page-link"
-                                href="{{ url_for('networks_list', page=1, per_page=per_page) }}"
-                                >1</a
-                            >
-                        </li>
-                        {% if start_page > 2 %}
-                        <li class="page-item disabled">
-                            <span class="page-link">
-                                <i class="bi bi-three-dots"></i>
-                            </span>
-                        </li>
-                        {% endif %} {% endif %} {% for p in range(start_page,
-                        end_page + 1) %}
-                        <li
-                            class="page-item {% if p == page %}active{% endif %}"
-                        >
-                            <a
-                                class="page-link"
-                                href="{{ url_for('networks_list', page=p, per_page=per_page) }}"
-                                >{{ p }}</a
-                            >
-                        </li>
-                        {% endfor %} {% if end_page < total_pages %} {% if
-                        end_page < total_pages - 1 %}
-                        <li class="page-item disabled">
-                            <span class="page-link">
-                                <i class="bi bi-three-dots"></i>
-                            </span>
-                        </li>
-                        {% endif %}
-                        <li class="page-item">
-                            <a
-                                class="page-link"
-                                href="{{ url_for('networks_list', page=total_pages, per_page=per_page) }}"
-                                >{{ total_pages }}</a
-                            >
-                        </li>
-                        {% endif %}
-
-                        <li
-                            class="page-item {% if page == total_pages %}disabled{% endif %}"
-                        >
-                            <a
-                                class="page-link"
-                                href="{{ url_for('networks_list', page=page+1, per_page=per_page) }}"
-                                aria-label="Next"
-                            >
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
             </div>
         </div>
 
@@ -767,96 +573,5 @@
             integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
             crossorigin="anonymous"
         ></script>
-
-        <script>
-            // Table filtering and search functionality
-            document.addEventListener("DOMContentLoaded", function () {
-                const searchInput = document.getElementById("searchInput");
-                const typeFilter = document.getElementById("typeFilter");
-                const policyFilter = document.getElementById("policyFilter");
-                const statusFilter = document.getElementById("statusFilter");
-                const perPageSelect = document.getElementById("perPageSelect");
-
-                // Search functionality
-                let searchTimeout;
-                searchInput?.addEventListener("input", function () {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(() => {
-                        filterTable();
-                    }, 300);
-                });
-
-                // Filter change handlers
-                [typeFilter, policyFilter, statusFilter].forEach((filter) => {
-                    filter?.addEventListener("change", filterTable);
-                });
-
-                // Per page selector
-                perPageSelect?.addEventListener("change", function () {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set("per_page", this.value);
-                    url.searchParams.set("page", "1");
-                    window.location.href = url.toString();
-                });
-
-                function filterTable() {
-                    const searchTerm = searchInput.value.toLowerCase();
-                    const typeValue = typeFilter.value.toLowerCase();
-                    const policyValue = policyFilter.value.toLowerCase();
-                    const statusValue = statusFilter.value.toLowerCase();
-
-                    const rows = document.querySelectorAll("tbody tr");
-                    let visibleCount = 0;
-
-                    rows.forEach((row) => {
-                        const name = row.cells[0].textContent.toLowerCase();
-                        const asn = row.cells[1].textContent.toLowerCase();
-                        const type = row.cells[2].textContent.toLowerCase();
-                        const policy = row.cells[7].textContent.toLowerCase();
-                        const status = row.cells[8].textContent.toLowerCase();
-
-                        const matchesSearch =
-                            !searchTerm ||
-                            name.includes(searchTerm) ||
-                            asn.includes(searchTerm) ||
-                            type.includes(searchTerm);
-
-                        const matchesType =
-                            !typeValue || type.includes(typeValue);
-                        const matchesPolicy =
-                            !policyValue || policy.includes(policyValue);
-                        const matchesStatus =
-                            !statusValue || status.includes(statusValue);
-
-                        const shouldShow =
-                            matchesSearch &&
-                            matchesType &&
-                            matchesPolicy &&
-                            matchesStatus;
-
-                        row.style.display = shouldShow ? "" : "none";
-                        if (shouldShow) visibleCount++;
-                    });
-
-                    // Update summary text
-                    const summaryText = document.querySelector(
-                        ".table-summary-text",
-                    );
-                    if (summaryText && searchTerm) {
-                        summaryText.innerHTML = `
-                            <i class="bi bi-search"></i>
-                            Found ${visibleCount} networks matching your search
-                        `;
-                    }
-                }
-
-                // Initialize per page selector with current value
-                const urlParams = new URLSearchParams(window.location.search);
-                const currentPerPage = urlParams.get("per_page") || "25";
-                if (perPageSelect) {
-                    perPageSelect.value = currentPerPage;
-                }
-            });
-        </script>
     </body>
 </html>

@@ -116,3 +116,29 @@ def networks_list():
 def analytics():
     """Advanced analytics page"""
     return render_template("analytics.html")
+
+
+@app.route("/search")
+def search_networks():
+    """Search networks by AS number or name"""
+    query_asn = request.args.get("asn", type=int)
+    query_name = request.args.get("name", type=str)
+
+    results = []
+    if query_asn is not None or query_name:
+        for network in app.DATA:
+            match_asn = False
+            if query_asn is not None and network.get("asn") == query_asn:
+                match_asn = True
+
+            match_name = False
+            if query_name and network.get("name"):
+                if query_name.lower() in network["name"].lower():
+                    match_name = True
+
+            if (query_asn is not None and match_asn) or (query_name and match_name):
+                results.append(network)
+
+    return render_template(
+        "search.html", results=results, query_asn=query_asn, query_name=query_name
+    )
