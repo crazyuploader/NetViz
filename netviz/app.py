@@ -2,7 +2,7 @@
 
 from collections import Counter
 import os
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 template_dir = os.path.join(basedir, "..", "templates")
@@ -85,8 +85,26 @@ def api_ix_facility_correlation():
 
 @app.route("/networks")
 def networks_list():
-    """Detailed networks listing page"""
-    return render_template("networks.html", networks=app.DATA)
+    """Detailed networks listing page with pagination"""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 25, type=int)
+
+    total_networks = len(app.DATA)
+    total_pages = (total_networks + per_page - 1) // per_page
+
+    start_index = (page - 1) * per_page
+    end_index = start_index + per_page
+
+    paginated_networks = app.DATA[start_index:end_index]
+
+    return render_template(
+        "networks.html",
+        networks=paginated_networks,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+        total_networks=total_networks,
+    )
 
 
 @app.route("/analytics")

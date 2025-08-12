@@ -123,6 +123,69 @@
                                     </tbody>
                                 </table>
                             </div>
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    <li
+                                        class="page-item {% if page == 1 %}disabled{% endif %}"
+                                    >
+                                        <a
+                                            class="page-link"
+                                            href="{{ url_for('networks_list', page=page-1, per_page=per_page) }}"
+                                            >Previous</a
+                                        >
+                                    </li>
+                                    {% set num_display_pages = 5 %} {% set
+                                    start_page = [1, page - (num_display_pages
+                                    // 2)]|max %} {% set end_page =
+                                    [total_pages, page + (num_display_pages //
+                                    2)]|min %} {% if start_page > 1 %}
+                                    <li class="page-item">
+                                        <a
+                                            class="page-link"
+                                            href="{{ url_for('networks_list', page=1, per_page=per_page) }}"
+                                            >1</a
+                                        >
+                                    </li>
+                                    {% if start_page > 2 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                    {% endif %} {% endif %} {% for p in
+                                    range(start_page, end_page + 1) %}
+                                    <li
+                                        class="page-item {% if p == page %}active{% endif %}"
+                                    >
+                                        <a
+                                            class="page-link"
+                                            href="{{ url_for('networks_list', page=p, per_page=per_page) }}"
+                                            >{{ p }}</a
+                                        >
+                                    </li>
+                                    {% endfor %} {% if end_page < total_pages %}
+                                    {% if end_page < total_pages - 1 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                    {% endif %}
+                                    <li class="page-item">
+                                        <a
+                                            class="page-link"
+                                            href="{{ url_for('networks_list', page=total_pages, per_page=per_page) }}"
+                                            >{{ total_pages }}</a
+                                        >
+                                    </li>
+                                    {% endif %}
+                                    <li
+                                        class="page-item {% if page == total_pages %}disabled{% endif %}"
+                                    >
+                                        <a
+                                            class="page-link"
+                                            href="{{ url_for('networks_list', page=page+1, per_page=per_page) }}"
+                                            >Next</a
+                                        >
+                                    </li>
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                 </div>
