@@ -1,7 +1,6 @@
 services:
     netviz:
-        build:
-            context: .
+        image: ghcr.io/crazyuploader/netviz:latest
         volumes:
             - ./data:/app/data
         ports:
@@ -10,3 +9,8 @@ services:
         logging:
             options:
                 max-size: 256m
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8201/"]
+            interval: 30s
+            timeout: 10s
+            retries: 3

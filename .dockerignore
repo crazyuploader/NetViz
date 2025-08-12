@@ -1,0 +1,15 @@
+__pycache__
+.data
+.github
+.git
+.venv
+data
+.prettierrc
+.gitignore
+.python-version
+*.pyc
+*.pyo
+*.pyd
+.idea
+.vscode
+README.md
