@@ -1,0 +1,8 @@
+[project]
+name = "netviz"
+version = "0.1.0"
+description = "Visualize network related data from PeeringDB"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+]

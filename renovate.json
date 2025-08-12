@@ -1,0 +1,62 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended"],
+    "automerge": true,
+    "rebaseWhen": "conflicted",
+    "recreateClosed": false,
+    "recreateWhen": "always",
+    "lockFileMaintenance": {
+        "enabled": true,
+        "automerge": true
+    },
+    "packageRules": [
+        {
+            "matchManagers": ["pep621"],
+            "automerge": true,
+            "groupName": "Main dependencies",
+            "matchPackageNames": [
+                "*",
+                "!pytest",
+                "!pytest-asyncio",
+                "!coverage",
+                "!pre-commit",
+                "!black",
+                "!ruff",
+                "!isort"
+            ]
+        },
+        {
+            "matchPackageNames": [
+                "pytest",
+                "pytest-asyncio",
+                "coverage",
+                "pre-commit",
+                "black",
+                "ruff",
+                "isort"
+            ],
+            "automerge": true,
+            "groupName": "Dev dependencies",
+            "addLabels": ["dev-dependencies"]
+        }
+    ],
+    "rangeStrategy": "bump",
+    "separateMajorMinor": true,
+    "labels": ["dependencies", "python"],
+    "platformAutomerge": true,
+    "automergeType": "branch",
+    "prHourlyLimit": 3,
+    "prConcurrentLimit": 6,
+    "schedule": [
+        "after 10pm every weekday",
+        "before 5am every weekday",
+        "every weekend"
+    ],
+    "ignorePaths": [
+        "**/__pycache__/**",
+        "**/.pytest_cache/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/.venv/**"
+    ]
+}
