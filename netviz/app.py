@@ -3,12 +3,16 @@
 from collections import Counter
 import os
 from flask import Flask, render_template, jsonify, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 from netviz.data import load_network_data
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 template_dir = os.path.join(basedir, "..", "templates")
 
 app = Flask(__name__, template_folder=template_dir)
+
+# Enable reverse proxy support
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 app.DATA = load_network_data()
 
