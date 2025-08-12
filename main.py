@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
-"""Main program of the NetViz project.
-
-This script serves as the entry point for the NetViz application.
-Currently, it provides a basic greeting, but it is intended to be expanded
-to orchestrate data visualization and analysis of PeeringDB data.
-"""
+"""NetViz: Main entry point for the Flask application."""
+from netviz.app import app
+from netviz.data import load_network_data
 
 
 def main():
-    """Main function of the NetViz application.
+    """Loads network data and starts the Flask web server."""
+    print("Loading network data...")
+    app.DATA = load_network_data()
 
-    This function is currently a placeholder and will be expanded to
-    handle the primary logic for visualizing network data.
-    """
-    print("Hello from netviz!")
+    if not app.DATA:
+        print("No data loaded. Exiting.")
+        return
+
+    print("Starting Flask application...")
+    app.run(debug=True)
 
 
 if __name__ == "__main__":
-    # This ensures that the main() function is called only when the script
-    # is executed directly (not when imported as a module).
     main()
