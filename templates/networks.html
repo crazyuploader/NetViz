@@ -4,192 +4,856 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Networks - Network Data Visualization</title>
+
+        <!-- Bootstrap 5.3.2 (latest stable) -->
         <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
             rel="stylesheet"
-            integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+            integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
             crossorigin="anonymous"
         />
-        <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
-            crossorigin="anonymous"
-        ></script>
+
+        <!-- Modern fonts and icons -->
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+            rel="stylesheet"
+        />
+
+        <style>
+            :root {
+                --primary-color: #3b82f6;
+                --secondary-color: #64748b;
+                --success-color: #10b981;
+                --warning-color: #f59e0b;
+                --danger-color: #ef4444;
+                --info-color: #06b6d4;
+                --background-color: #f8fafc;
+                --card-shadow:
+                    0 1px 3px 0 rgb(0 0 0 / 0.1),
+                    0 1px 2px -1px rgb(0 0 0 / 0.1);
+                --card-hover-shadow:
+                    0 10px 15px -3px rgb(0 0 0 / 0.1),
+                    0 4px 6px -4px rgb(0 0 0 / 0.1);
+                --border-radius: 0.75rem;
+            }
+
+            * {
+                font-family:
+                    "Inter",
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    sans-serif;
+            }
+
+            body {
+                background-color: var(--background-color);
+                color: #1e293b;
+                line-height: 1.6;
+            }
+
+            /* Enhanced Modern Navbar */
+            .navbar {
+                background: linear-gradient(
+                    135deg,
+                    #1e293b 0%,
+                    #334155 100%
+                ) !important;
+                box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.1);
+                padding: 1rem 0;
+            }
+
+            .navbar-brand {
+                font-weight: 700;
+                font-size: 1.25rem;
+                letter-spacing: -0.025em;
+                color: white !important;
+                text-decoration: none;
+            }
+
+            .navbar-brand:hover {
+                color: rgba(255, 255, 255, 0.9) !important;
+            }
+
+            .nav-link {
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border-radius: 0.375rem;
+                margin: 0 0.25rem;
+                padding: 0.5rem 1rem !important;
+                color: rgba(255, 255, 255, 0.85) !important;
+                text-decoration: none;
+            }
+
+            .nav-link:hover {
+                background-color: rgba(255, 255, 255, 0.15);
+                transform: translateY(-1px);
+                color: rgba(255, 255, 255, 0.95) !important;
+            }
+
+            .nav-link.active {
+                background-color: var(--primary-color);
+                color: white !important;
+                box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+            }
+
+            .nav-link i {
+                margin-right: 0.375rem;
+                opacity: 0.9;
+            }
+
+            .nav-link:hover i {
+                opacity: 1;
+            }
+
+            /* Modern Card */
+            .modern-card {
+                background: white;
+                border: none;
+                border-radius: var(--border-radius);
+                box-shadow: var(--card-shadow);
+                transition: all 0.3s ease;
+                overflow: hidden;
+            }
+
+            .modern-card:hover {
+                box-shadow: var(--card-hover-shadow);
+            }
+
+            .modern-card .card-header {
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                border-bottom: 1px solid #e2e8f0;
+                padding: 1.5rem;
+                border-radius: 0;
+            }
+
+            .modern-card .card-header h5 {
+                margin: 0;
+                font-weight: 600;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Search and Filter Bar */
+            .filter-bar {
+                background: white;
+                border-radius: var(--border-radius);
+                box-shadow: var(--card-shadow);
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .search-input {
+                border: 2px solid #e2e8f0;
+                border-radius: 0.5rem;
+                padding: 0.75rem 1rem;
+                transition: all 0.2s ease;
+                font-size: 0.875rem;
+            }
+
+            .search-input:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                outline: none;
+            }
+
+            /* Modern Table */
+            .modern-table {
+                background: white;
+                border-radius: var(--border-radius);
+                overflow: hidden;
+                box-shadow: var(--card-shadow);
+            }
+
+            .table {
+                margin: 0;
+            }
+
+            .table thead th {
+                background: #f8fafc;
+                border-bottom: 2px solid #e2e8f0;
+                font-weight: 600;
+                color: #374151;
+                padding: 1rem 0.75rem;
+                font-size: 0.875rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .table tbody td {
+                padding: 1rem 0.75rem;
+                border-bottom: 1px solid #f1f5f9;
+                vertical-align: middle;
+                font-size: 0.875rem;
+            }
+
+            .table tbody tr:hover {
+                background-color: #f8fafc;
+            }
+
+            .table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            /* Network Name Styling */
+            .network-name {
+                font-weight: 600;
+                color: #1e293b;
+                margin-bottom: 0.25rem;
+            }
+
+            .network-aka {
+                color: var(--secondary-color);
+                font-size: 0.8125rem;
+                font-style: italic;
+            }
+
+            /* ASN Styling */
+            .asn-badge {
+                background: #f1f5f9;
+                color: #374151;
+                padding: 0.25rem 0.75rem;
+                border-radius: 9999px;
+                font-size: 0.8125rem;
+                font-weight: 500;
+                font-family:
+                    "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
+            }
+
+            /* Enhanced Badges */
+            .modern-badge {
+                padding: 0.375rem 0.875rem;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .badge-type-primary {
+                background: rgba(59, 130, 246, 0.1);
+                color: #1d4ed8;
+                border: 1px solid rgba(59, 130, 246, 0.2);
+            }
+
+            .badge-policy-open {
+                background: rgba(16, 185, 129, 0.1);
+                color: #047857;
+                border: 1px solid rgba(16, 185, 129, 0.2);
+            }
+
+            .badge-policy-restrictive {
+                background: rgba(245, 158, 11, 0.1);
+                color: #92400e;
+                border: 1px solid rgba(245, 158, 11, 0.2);
+            }
+
+            .badge-policy-unknown {
+                background: rgba(100, 116, 139, 0.1);
+                color: #475569;
+                border: 1px solid rgba(100, 116, 139, 0.2);
+            }
+
+            .badge-status-ok {
+                background: rgba(16, 185, 129, 0.1);
+                color: #047857;
+                border: 1px solid rgba(16, 185, 129, 0.2);
+            }
+
+            .badge-status-error {
+                background: rgba(239, 68, 68, 0.1);
+                color: #b91c1c;
+                border: 1px solid rgba(239, 68, 68, 0.2);
+            }
+
+            /* Statistics Display */
+            .stat-number {
+                font-weight: 600;
+                color: #1e293b;
+            }
+
+            .stat-na {
+                color: var(--secondary-color);
+                font-style: italic;
+                font-size: 0.8125rem;
+            }
+
+            /* Modern Pagination */
+            .modern-pagination {
+                background: white;
+                border-radius: var(--border-radius);
+                box-shadow: var(--card-shadow);
+                padding: 1.5rem;
+                margin-top: 1.5rem;
+            }
+
+            .pagination {
+                margin: 0;
+                justify-content: center;
+                gap: 0.25rem;
+            }
+
+            .page-link {
+                border: 2px solid transparent;
+                border-radius: 0.5rem;
+                padding: 0.5rem 0.875rem;
+                color: var(--secondary-color);
+                font-weight: 500;
+                transition: all 0.2s ease;
+                margin: 0;
+            }
+
+            .page-link:hover {
+                background-color: #f8fafc;
+                border-color: #e2e8f0;
+                color: var(--primary-color);
+                transform: translateY(-1px);
+            }
+
+            .page-item.active .page-link {
+                background-color: var(--primary-color);
+                border-color: var(--primary-color);
+                color: white;
+                box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+            }
+
+            .page-item.disabled .page-link {
+                color: #cbd5e1;
+                background-color: transparent;
+                border-color: transparent;
+            }
+
+            /* Table Summary */
+            .table-summary {
+                background: #f8fafc;
+                border-radius: 0.5rem;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                border: 1px solid #e2e8f0;
+            }
+
+            .table-summary-text {
+                color: var(--secondary-color);
+                font-size: 0.875rem;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* Table Actions */
+            .table-actions {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 1rem;
+            }
+
+            .results-per-page {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.875rem;
+                color: var(--secondary-color);
+            }
+
+            .results-per-page select {
+                border: 1px solid #e2e8f0;
+                border-radius: 0.375rem;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.875rem;
+            }
+
+            /* Responsive adjustments */
+            @media (max-width: 768px) {
+                .table-responsive {
+                    border-radius: var(--border-radius);
+                    box-shadow: var(--card-shadow);
+                }
+
+                .modern-card .card-header {
+                    padding: 1rem;
+                }
+
+                .filter-bar {
+                    padding: 1rem;
+                }
+
+                .table thead th,
+                .table tbody td {
+                    padding: 0.75rem 0.5rem;
+                    font-size: 0.8125rem;
+                }
+
+                .network-name {
+                    font-size: 0.875rem;
+                }
+            }
+        </style>
     </head>
     <body>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <!-- Modern Navigation -->
+        <nav class="navbar navbar-expand-lg">
             <div class="container">
-                <a class="navbar-brand" href="/">Network Analytics</a>
-                <div class="navbar-nav">
-                    <a class="nav-link" href="/">Dashboard</a>
-                    <a class="nav-link active" href="/networks">Networks</a>
-                    <a class="nav-link" href="/analytics">Analytics</a>
+                <a class="navbar-brand" href="/">
+                    <i class="bi bi-diagram-3"></i>
+                    Network Analytics
+                </a>
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation"
+                >
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <div class="navbar-nav ms-auto">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                        <a class="nav-link active" href="/networks">
+                            <i class="bi bi-network-wired"></i> Networks
+                        </a>
+                        <a class="nav-link" href="/analytics">
+                            <i class="bi bi-graph-up"></i> Analytics
+                        </a>
+                    </div>
                 </div>
             </div>
         </nav>
 
-        <div class="container-fluid mt-4">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5>All Networks</h5>
+        <!-- Main Content -->
+        <div class="container-fluid px-4 py-4">
+            <!-- Search and Filter Bar -->
+            <div class="filter-bar">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span
+                                class="input-group-text bg-white border-end-0"
+                            >
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input
+                                type="text"
+                                class="form-control search-input border-start-0 ps-0"
+                                placeholder="Search networks by name, ASN, or type..."
+                                id="searchInput"
+                            />
                         </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>ASN</th>
-                                            <th>Type</th>
-                                            <th>IPv4 Prefixes</th>
-                                            <th>IPv6 Prefixes</th>
-                                            <th>IX Count</th>
-                                            <th>Facility Count</th>
-                                            <th>Policy</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for network in networks %}
-                                        <tr>
-                                            <td>
-                                                <strong
-                                                    >{{ network.name }}</strong
-                                                >
-                                                {% if network.aka %}
-                                                <br /><small class="text-muted"
-                                                    >{{ network.aka }}</small
-                                                >
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ network.asn }}</td>
-                                            <td>
-                                                <span class="badge bg-primary"
-                                                    >{{ network.info_type or
-                                                    'Unknown' }}</span
-                                                >
-                                            </td>
-                                            <td>
-                                                {{
-                                                "{:,}".format(network.info_prefixes4)
-                                                if network.info_prefixes4 else
-                                                'N/A' }}
-                                            </td>
-                                            <td>
-                                                {{
-                                                "{:,}".format(network.info_prefixes6)
-                                                if network.info_prefixes6 else
-                                                'N/A' }}
-                                            </td>
-                                            <td>{{ network.ix_count or 0 }}</td>
-                                            <td>
-                                                {{ network.fac_count or 0 }}
-                                            </td>
-                                            <td>
-                                                {% if network.policy_general ==
-                                                'Open' %}
-                                                <span class="badge bg-success"
-                                                    >{{ network.policy_general
-                                                    }}</span
-                                                >
-                                                {% elif network.policy_general
-                                                == 'Restrictive' %}
-                                                <span class="badge bg-warning"
-                                                    >{{ network.policy_general
-                                                    }}</span
-                                                >
-                                                {% else %}
-                                                <span class="badge bg-secondary"
-                                                    >{{ network.policy_general
-                                                    or 'Unknown' }}</span
-                                                >
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if network.status == 'ok' %}
-                                                <span class="badge bg-success"
-                                                    >OK</span
-                                                >
-                                                {% else %}
-                                                <span class="badge bg-danger"
-                                                    >{{ network.status }}</span
-                                                >
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <select
+                                    class="form-select form-select-sm"
+                                    id="typeFilter"
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="ISP">ISP</option>
+                                    <option value="Content">Content</option>
+                                    <option value="Enterprise">
+                                        Enterprise
+                                    </option>
+                                </select>
                             </div>
-                            <nav aria-label="Page navigation">
-                                <ul class="pagination justify-content-center">
-                                    <li
-                                        class="page-item {% if page == 1 %}disabled{% endif %}"
-                                    >
-                                        <a
-                                            class="page-link"
-                                            href="{{ url_for('networks_list', page=page-1, per_page=per_page) }}"
-                                            >Previous</a
-                                        >
-                                    </li>
-                                    {% set num_display_pages = 5 %} {% set
-                                    start_page = [1, page - (num_display_pages
-                                    // 2)]|max %} {% set end_page =
-                                    [total_pages, page + (num_display_pages //
-                                    2)]|min %} {% if start_page > 1 %}
-                                    <li class="page-item">
-                                        <a
-                                            class="page-link"
-                                            href="{{ url_for('networks_list', page=1, per_page=per_page) }}"
-                                            >1</a
-                                        >
-                                    </li>
-                                    {% if start_page > 2 %}
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                    {% endif %} {% endif %} {% for p in
-                                    range(start_page, end_page + 1) %}
-                                    <li
-                                        class="page-item {% if p == page %}active{% endif %}"
-                                    >
-                                        <a
-                                            class="page-link"
-                                            href="{{ url_for('networks_list', page=p, per_page=per_page) }}"
-                                            >{{ p }}</a
-                                        >
-                                    </li>
-                                    {% endfor %} {% if end_page < total_pages %}
-                                    {% if end_page < total_pages - 1 %}
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                    {% endif %}
-                                    <li class="page-item">
-                                        <a
-                                            class="page-link"
-                                            href="{{ url_for('networks_list', page=total_pages, per_page=per_page) }}"
-                                            >{{ total_pages }}</a
-                                        >
-                                    </li>
-                                    {% endif %}
-                                    <li
-                                        class="page-item {% if page == total_pages %}disabled{% endif %}"
-                                    >
-                                        <a
-                                            class="page-link"
-                                            href="{{ url_for('networks_list', page=page+1, per_page=per_page) }}"
-                                            >Next</a
-                                        >
-                                    </li>
-                                </ul>
-                            </nav>
+                            <div class="col-md-4">
+                                <select
+                                    class="form-select form-select-sm"
+                                    id="policyFilter"
+                                >
+                                    <option value="">All Policies</option>
+                                    <option value="Open">Open</option>
+                                    <option value="Restrictive">
+                                        Restrictive
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select
+                                    class="form-select form-select-sm"
+                                    id="statusFilter"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="ok">OK</option>
+                                    <option value="error">Error</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Networks Table -->
+            <div class="modern-card">
+                <div class="card-header">
+                    <h5>
+                        <i class="bi bi-table text-primary"></i>
+                        All Networks
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Table Summary -->
+                    <div class="table-summary mx-3 mt-3">
+                        <div class="table-actions">
+                            <p class="table-summary-text">
+                                <i class="bi bi-info-circle"></i>
+                                Showing {{ ((page - 1) * per_page + 1) if
+                                networks else 0 }} to {{ (page * per_page) if
+                                (page * per_page) < total_networks else
+                                total_networks }} of {{ total_networks }}
+                                networks
+                            </p>
+                            <div class="results-per-page">
+                                <label for="perPageSelect">Show:</label>
+                                <select
+                                    id="perPageSelect"
+                                    class="form-select form-select-sm"
+                                >
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                                <span>per page</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        <i class="bi bi-building me-1"></i>
+                                        Network
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-hash me-1"></i>
+                                        ASN
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-tag me-1"></i>
+                                        Type
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-diagram-2 me-1"></i>
+                                        IPv4
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-diagram-3 me-1"></i>
+                                        IPv6
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-router me-1"></i>
+                                        IX
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-building-gear me-1"></i>
+                                        Facilities
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-shield-check me-1"></i>
+                                        Policy
+                                    </th>
+                                    <th scope="col">
+                                        <i class="bi bi-activity me-1"></i>
+                                        Status
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for network in networks %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <div class="network-name">
+                                                {{ network.name }}
+                                            </div>
+                                            {% if network.aka %}
+                                            <div class="network-aka">
+                                                {{ network.aka }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="asn-badge"
+                                            >AS{{ network.asn }}</span
+                                        >
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge modern-badge badge-type-primary"
+                                        >
+                                            {{ network.info_type or 'Unknown' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if network.info_prefixes4 %}
+                                        <span class="stat-number"
+                                            >{{
+                                            "{:,}".format(network.info_prefixes4)
+                                            }}</span
+                                        >
+                                        {% else %}
+                                        <span class="stat-na">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if network.info_prefixes6 %}
+                                        <span class="stat-number"
+                                            >{{
+                                            "{:,}".format(network.info_prefixes6)
+                                            }}</span
+                                        >
+                                        {% else %}
+                                        <span class="stat-na">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="stat-number"
+                                            >{{ network.ix_count or 0 }}</span
+                                        >
+                                    </td>
+                                    <td>
+                                        <span class="stat-number"
+                                            >{{ network.fac_count or 0 }}</span
+                                        >
+                                    </td>
+                                    <td>
+                                        {% if network.policy_general == 'Open'
+                                        %}
+                                        <span
+                                            class="badge modern-badge badge-policy-open"
+                                            >Open</span
+                                        >
+                                        {% elif network.policy_general ==
+                                        'Restrictive' %}
+                                        <span
+                                            class="badge modern-badge badge-policy-restrictive"
+                                            >Restrictive</span
+                                        >
+                                        {% else %}
+                                        <span
+                                            class="badge modern-badge badge-policy-unknown"
+                                        >
+                                            {{ network.policy_general or
+                                            'Unknown' }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if network.status == 'ok' %}
+                                        <span
+                                            class="badge modern-badge badge-status-ok"
+                                        >
+                                            <i
+                                                class="bi bi-check-circle me-1"
+                                            ></i
+                                            >OK
+                                        </span>
+                                        {% else %}
+                                        <span
+                                            class="badge modern-badge badge-status-error"
+                                        >
+                                            <i
+                                                class="bi bi-exclamation-triangle me-1"
+                                            ></i
+                                            >{{ network.status }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern Pagination -->
+            <div class="modern-pagination">
+                <nav aria-label="Networks pagination">
+                    <ul class="pagination">
+                        <li
+                            class="page-item {% if page == 1 %}disabled{% endif %}"
+                        >
+                            <a
+                                class="page-link"
+                                href="{{ url_for('networks_list', page=page-1, per_page=per_page) }}"
+                                aria-label="Previous"
+                            >
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        {% set num_display_pages = 5 %} {% set start_page = [1,
+                        page - (num_display_pages // 2)]|max %} {% set end_page
+                        = [total_pages, page + (num_display_pages // 2)]|min %}
+                        {% if start_page > 1 %}
+                        <li class="page-item">
+                            <a
+                                class="page-link"
+                                href="{{ url_for('networks_list', page=1, per_page=per_page) }}"
+                                >1</a
+                            >
+                        </li>
+                        {% if start_page > 2 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                <i class="bi bi-three-dots"></i>
+                            </span>
+                        </li>
+                        {% endif %} {% endif %} {% for p in range(start_page,
+                        end_page + 1) %}
+                        <li
+                            class="page-item {% if p == page %}active{% endif %}"
+                        >
+                            <a
+                                class="page-link"
+                                href="{{ url_for('networks_list', page=p, per_page=per_page) }}"
+                                >{{ p }}</a
+                            >
+                        </li>
+                        {% endfor %} {% if end_page < total_pages %} {% if
+                        end_page < total_pages - 1 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                <i class="bi bi-three-dots"></i>
+                            </span>
+                        </li>
+                        {% endif %}
+                        <li class="page-item">
+                            <a
+                                class="page-link"
+                                href="{{ url_for('networks_list', page=total_pages, per_page=per_page) }}"
+                                >{{ total_pages }}</a
+                            >
+                        </li>
+                        {% endif %}
+
+                        <li
+                            class="page-item {% if page == total_pages %}disabled{% endif %}"
+                        >
+                            <a
+                                class="page-link"
+                                href="{{ url_for('networks_list', page=page+1, per_page=per_page) }}"
+                                aria-label="Next"
+                            >
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
         </div>
+
+        <!-- Bootstrap JS -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+            crossorigin="anonymous"
+        ></script>
+
+        <script>
+            // Table filtering and search functionality
+            document.addEventListener("DOMContentLoaded", function () {
+                const searchInput = document.getElementById("searchInput");
+                const typeFilter = document.getElementById("typeFilter");
+                const policyFilter = document.getElementById("policyFilter");
+                const statusFilter = document.getElementById("statusFilter");
+                const perPageSelect = document.getElementById("perPageSelect");
+
+                // Search functionality
+                let searchTimeout;
+                searchInput?.addEventListener("input", function () {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        filterTable();
+                    }, 300);
+                });
+
+                // Filter change handlers
+                [typeFilter, policyFilter, statusFilter].forEach((filter) => {
+                    filter?.addEventListener("change", filterTable);
+                });
+
+                // Per page selector
+                perPageSelect?.addEventListener("change", function () {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("per_page", this.value);
+                    url.searchParams.set("page", "1");
+                    window.location.href = url.toString();
+                });
+
+                function filterTable() {
+                    const searchTerm = searchInput.value.toLowerCase();
+                    const typeValue = typeFilter.value.toLowerCase();
+                    const policyValue = policyFilter.value.toLowerCase();
+                    const statusValue = statusFilter.value.toLowerCase();
+
+                    const rows = document.querySelectorAll("tbody tr");
+                    let visibleCount = 0;
+
+                    rows.forEach((row) => {
+                        const name = row.cells[0].textContent.toLowerCase();
+                        const asn = row.cells[1].textContent.toLowerCase();
+                        const type = row.cells[2].textContent.toLowerCase();
+                        const policy = row.cells[7].textContent.toLowerCase();
+                        const status = row.cells[8].textContent.toLowerCase();
+
+                        const matchesSearch =
+                            !searchTerm ||
+                            name.includes(searchTerm) ||
+                            asn.includes(searchTerm) ||
+                            type.includes(searchTerm);
+
+                        const matchesType =
+                            !typeValue || type.includes(typeValue);
+                        const matchesPolicy =
+                            !policyValue || policy.includes(policyValue);
+                        const matchesStatus =
+                            !statusValue || status.includes(statusValue);
+
+                        const shouldShow =
+                            matchesSearch &&
+                            matchesType &&
+                            matchesPolicy &&
+                            matchesStatus;
+
+                        row.style.display = shouldShow ? "" : "none";
+                        if (shouldShow) visibleCount++;
+                    });
+
+                    // Update summary text
+                    const summaryText = document.querySelector(
+                        ".table-summary-text",
+                    );
+                    if (summaryText && searchTerm) {
+                        summaryText.innerHTML = `
+                            <i class="bi bi-search"></i>
+                            Found ${visibleCount} networks matching your search
+                        `;
+                    }
+                }
+
+                // Initialize per page selector with current value
+                const urlParams = new URLSearchParams(window.location.search);
+                const currentPerPage = urlParams.get("per_page") || "25";
+                if (perPageSelect) {
+                    perPageSelect.value = currentPerPage;
+                }
+            });
+        </script>
     </body>
 </html>

@@ -3,13 +3,14 @@
 from collections import Counter
 import os
 from flask import Flask, render_template, jsonify, request
+from netviz.data import load_network_data
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 template_dir = os.path.join(basedir, "..", "templates")
 
 app = Flask(__name__, template_folder=template_dir)
 
-app.DATA = {}
+app.DATA = load_network_data()
 
 
 @app.route("/")
