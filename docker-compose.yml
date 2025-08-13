@@ -7,8 +7,8 @@ services:
             - "${HOST:-127.0.0.1}:8201:8201"
         restart: unless-stopped
         environment:
-            - FLASK_ENV="${FLASK_ENV:-PRODUCTION}"
-            - PEERINGDB_API_KEY="${PEERINGDB_API_KEY}"
+            - FLASK_ENV=${FLASK_ENV:-PRODUCTION}
+            - PEERINGDB_API_KEY=${PEERINGDB_API_KEY}
         logging:
             options:
                 max-size: 256m
