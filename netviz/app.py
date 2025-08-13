@@ -142,3 +142,12 @@ def search_networks():
     return render_template(
         "search.html", results=results, query_asn=query_asn, query_name=query_name
     )
+
+
+if __name__ == "__main__":
+    print("Starting Flask application...")
+    # Determine if running in production mode
+    is_production = os.environ.get("FLASK_ENV") == "production"
+
+    # Run the Flask application
+    app.run(debug=not is_production, port=8201)

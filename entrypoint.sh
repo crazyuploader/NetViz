@@ -10,4 +10,4 @@ uv run python netviz/fetch_peeringdb.py
 
 # Start the Gunicorn server.
 # 'exec' is used to replace the shell process with the Gunicorn process.
-exec uv run gunicorn --config gunicorn.conf.py main:app
+exec uv run gunicorn --config gunicorn.conf.py netviz.app:app
