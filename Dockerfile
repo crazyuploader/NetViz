@@ -2,7 +2,7 @@
 # Created by Jugal Kishore -- 2025
 #
 # Using Python 3.13
-FROM python:3.13.6-slim
+FROM python:3.13.7-slim
 
 # Set Time Zone to IST
 ENV TZ="Asia/Kolkata"
