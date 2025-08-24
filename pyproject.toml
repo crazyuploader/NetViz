@@ -3,11 +3,11 @@ name = "netviz"
 version = "0.1.0"
 description = "Visualize network related data from PeeringDB"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13.7"
 dependencies = [
     "black>=25.1.0",
-    "flask>=3.1.1",
+    "flask>=3.1.2",
     "gunicorn>=23.0.0",
     "pylint>=3.3.8",
-    "requests>=2.32.4",
+    "requests>=2.32.5",
 ]
