@@ -16,6 +16,7 @@ use axum::{
     routing::get,            // HTTP GET route helper
     Router,                  // The main router that maps URLs to handlers
 };
+use itertools::Itertools; // Provides multiunzip and other iterator helpers
 use serde::Deserialize; // Allows parsing JSON/query strings into structs
 use std::collections::HashMap; // Key-value dictionary type
 use std::sync::Arc; // Thread-safe reference counting pointer (for shared state)
@@ -360,17 +361,9 @@ async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl I
         })
         .collect();
 
-    // Unzip tuple vector into three separate vectors
-    // `fold` accumulates values - starting with empty vectors, push each item
-    let (networks, ipv4, ipv6): (Vec<_>, Vec<_>, Vec<_>) = data.into_iter().fold(
-        (vec![], vec![], vec![]),
-        |(mut ns, mut v4s, mut v6s), (n, v4, v6)| {
-            ns.push(n);
-            v4s.push(v4);
-            v6s.push(v6);
-            (ns, v4s, v6s)
-        },
-    );
+    // Unzip tuple vector into three separate vectors using itertools::multiunzip
+    // This is much cleaner than manually folding
+    let (networks, ipv4, ipv6): (Vec<_>, Vec<_>, Vec<_>) = data.into_iter().multiunzip();
 
     Json(serde_json::json!({
         "networks": networks,
