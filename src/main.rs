@@ -77,11 +77,48 @@ struct Pagination {
     per_page: Option<usize>,
 }
 
+/// Deserializes an optional value, treating empty strings as None.
+///
+/// This is needed for HTML form fields that send empty strings instead of
+/// omitting the parameter entirely when the user leaves a field blank.
+fn empty_string_as_none<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
+    use serde::Deserialize;
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    match opt {
+        None => Ok(None),
+        Some(s) if s.is_empty() => Ok(None),
+        Some(s) => s.parse::<T>().map(Some).map_err(serde::de::Error::custom),
+    }
+}
+
 /// Query parameters for search.
 #[derive(Deserialize)]
 struct SearchQuery {
+    /// AS Number to search for. Empty strings are treated as None.
+    #[serde(default, deserialize_with = "empty_string_as_none")]
     asn: Option<i64>,
+    /// Network name to search for. Empty strings are treated as None.
+    #[serde(default, deserialize_with = "empty_string_as_none_str")]
     name: Option<String>,
+}
+
+/// Deserializes an optional String, treating empty strings as None.
+fn empty_string_as_none_str<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    match opt {
+        None => Ok(None),
+        Some(s) if s.is_empty() => Ok(None),
+        Some(s) => Ok(Some(s)),
+    }
 }
 
 /// Renders a template with error handling.
