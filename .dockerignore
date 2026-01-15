@@ -18,5 +18,7 @@ renovate.json
 brain
 
 # Ignore all data except net.json
-data
+data/*
+!data/peeringdb/
+data/peeringdb/*
 !data/peeringdb/net.json
