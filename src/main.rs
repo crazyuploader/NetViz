@@ -173,17 +173,23 @@ async fn refresh_data(state: Arc<AppState>) {
     }
 
     // Load the newly fetched data from disk
-    match load_network_data() {
-        Ok(new_data) => {
-            let count = new_data.len();
-            // Acquire write lock and update data
-            // This blocks readers momentarily but ensures consistency
-            let mut data_guard = state.data.write().await;
-            *data_guard = new_data;
-            info!("Data refresh complete: loaded {} networks", count);
-        }
+    // Use spawn_blocking to offload blocking I/O and CPU-bound JSON parsing
+    match tokio::task::spawn_blocking(load_network_data).await {
+        Ok(result) => match result {
+            Ok(new_data) => {
+                let count = new_data.len();
+                // Acquire write lock and update data
+                // This blocks readers momentarily but ensures consistency
+                let mut data_guard = state.data.write().await;
+                *data_guard = new_data;
+                info!("Data refresh complete: loaded {} networks", count);
+            }
+            Err(e) => {
+                error!("Failed to load refreshed data: {}", e);
+            }
+        },
         Err(e) => {
-            error!("Failed to load refreshed data: {}", e);
+            error!("Failed to execute background load task: {}", e);
         }
     }
 }

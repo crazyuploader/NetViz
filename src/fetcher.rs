@@ -3,9 +3,9 @@
 use crate::error::NetVizError;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde_json::Value;
-use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
+use tokio::fs;
 use tracing::{error, info, warn};
 
 /// Base URL for the PeeringDB API.
@@ -32,7 +32,7 @@ const OUTPUT_DIR: &str = "data/peeringdb";
 /// Returns `NetVizError::InvalidApiResponse` if the API index format is unexpected.
 pub async fn fetch_and_save_peeringdb_data() -> Result<(), NetVizError> {
     let output_path = PathBuf::from(OUTPUT_DIR);
-    fs::create_dir_all(&output_path)?;
+    fs::create_dir_all(&output_path).await?;
 
     let client = reqwest::Client::builder()
         .user_agent("NetViz/1.0.0")
@@ -71,7 +71,7 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), NetVizError> {
             Ok(resp) => match resp.json::<Value>().await {
                 Ok(data) => match serde_json::to_string_pretty(&data) {
                     Ok(json_data) => {
-                        if let Err(e) = fs::write(&file_path, json_data) {
+                        if let Err(e) = fs::write(&file_path, json_data).await {
                             error!("Failed to write data to {:?}: {}", file_path, e);
                         } else {
                             info!("Successfully saved data to {:?}", file_path);
