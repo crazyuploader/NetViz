@@ -13,14 +13,22 @@ use tracing::error;
 use crate::models::{Network, Stats};
 use crate::state::AppState;
 
-/// Query parameters for pagination.
+/// Query parameters for network list matching and pagination.
 #[derive(Debug, Deserialize)]
-pub struct Pagination {
+pub struct NetworkQuery {
     pub page: Option<usize>,
     pub per_page: Option<usize>,
+    #[serde(default, deserialize_with = "empty_string_as_none_str")]
+    pub q: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_str")]
+    pub type_: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_str")]
+    pub policy: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_str")]
+    pub status: Option<String>,
 }
 
-/// Query parameters for search.
+/// Query parameters for search endpoint.
 #[derive(Debug, Deserialize)]
 pub struct SearchQuery {
     /// AS Number to search for.
@@ -133,33 +141,71 @@ pub async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
 /// GET /networks - Paginated network list.
 pub async fn networks_list(
     State(state): State<Arc<AppState>>,
-    Query(pagination): Query<Pagination>,
+    Query(query): Query<NetworkQuery>,
 ) -> impl IntoResponse {
     let data_guard = state.data.read().await;
     let networks = &data_guard.networks;
-    let total_networks = networks.len();
 
-    if total_networks == 0 {
-        drop(data_guard);
-        let mut context = Context::new();
-        context.insert("networks", &Vec::<Network>::new());
-        context.insert("page", &1usize);
-        context.insert("per_page", &25usize);
-        context.insert("total_pages", &0usize);
-        context.insert("total_networks", &0usize);
-        return render_template(&state.tera, "networks.html", &context);
-    }
+    // Filter first
+    let filtered_networks: Vec<Network> = networks
+        .iter()
+        .filter(|n| {
+            let mut matches = true;
 
-    let page = pagination.page.unwrap_or(1).max(1);
-    let per_page = pagination.per_page.unwrap_or(25).clamp(1, 100);
+            if let Some(ref q) = query.q {
+                let q_lower = q.to_lowercase();
+                matches &= n.name.to_lowercase().contains(&q_lower)
+                    || n.asn.to_string().contains(&q_lower)
+                    || n.aka
+                        .as_ref()
+                        .map_or(false, |a| a.to_lowercase().contains(&q_lower));
+            }
+
+            if let Some(ref t) = query.type_ {
+                matches &= n
+                    .info_type
+                    .as_ref()
+                    .map_or(false, |it| it.eq_ignore_ascii_case(t));
+            }
+
+            if let Some(ref p) = query.policy {
+                matches &= n
+                    .policy_general
+                    .as_ref()
+                    .map_or(false, |pg| pg.eq_ignore_ascii_case(p));
+            }
+
+            if let Some(ref s) = query.status {
+                matches &= n
+                    .status
+                    .as_ref()
+                    .map_or(false, |st| st.eq_ignore_ascii_case(s));
+            }
+
+            matches
+        })
+        .cloned()
+        .collect();
+
+    let total_networks = filtered_networks.len();
+    let page = query.page.unwrap_or(1).max(1);
+    let per_page = query.per_page.unwrap_or(25).clamp(1, 100);
     let total_pages = total_networks.div_ceil(per_page);
+
+    // Adjust page if it exceeds total pages (unless total is 0)
+    let page = if total_pages > 0 && page > total_pages {
+        total_pages
+    } else {
+        page
+    };
+
     let start_index = (page - 1).saturating_mul(per_page);
     let end_index = start_index.saturating_add(per_page).min(total_networks);
 
     let paginated_networks: Vec<Network> = if start_index >= total_networks {
         Vec::new()
     } else {
-        networks[start_index..end_index].to_vec()
+        filtered_networks[start_index..end_index].to_vec()
     };
     drop(data_guard);
 
@@ -169,6 +215,12 @@ pub async fn networks_list(
     context.insert("per_page", &per_page);
     context.insert("total_pages", &total_pages);
     context.insert("total_networks", &total_networks);
+
+    // Pass back filter params
+    context.insert("q", &query.q);
+    context.insert("type_filter", &query.type_);
+    context.insert("policy_filter", &query.policy);
+    context.insert("status_filter", &query.status);
 
     render_template(&state.tera, "networks.html", &context)
 }

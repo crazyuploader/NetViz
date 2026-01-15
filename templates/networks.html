@@ -10,29 +10,33 @@
 
 <!-- Filter Bar -->
 <section>
-  <div class="grid">
-    <div>
-        <input type="search" id="searchInput" placeholder="Filter current page..." aria-label="Search">
-    </div>
+  <form action="/networks" method="get" id="searchForm">
     <div class="grid">
-        <select id="typeFilter" aria-label="Filter by Type">
-            <option value="">All Types</option>
-            <option value="ISP">ISP</option>
-            <option value="Content">Content</option>
-            <option value="Enterprise">Enterprise</option>
-        </select>
-        <select id="policyFilter" aria-label="Filter by Policy">
-            <option value="">All Policies</option>
-            <option value="Open">Open</option>
-            <option value="Restrictive">Restrictive</option>
-        </select>
-        <select id="statusFilter" aria-label="Filter by Status">
-            <option value="">All Status</option>
-            <option value="ok">OK</option>
-            <option value="error">Error</option>
-        </select>
+        <div>
+            <input type="search" name="q" id="searchInput" placeholder="Search networks (name, ASN)..." aria-label="Search" value="{{ q|default(value='') }}">
+        </div>
+        <div class="grid">
+            <select name="type" id="typeFilter" aria-label="Filter by Type" onchange="this.form.submit()">
+                <option value="" {% if not type_filter %}selected{% endif %}>All Types</option>
+                <option value="ISP" {% if type_filter == 'ISP' %}selected{% endif %}>ISP</option>
+                <option value="Content" {% if type_filter == 'Content' %}selected{% endif %}>Content</option>
+                <option value="Enterprise" {% if type_filter == 'Enterprise' %}selected{% endif %}>Enterprise</option>
+            </select>
+            <select name="policy" id="policyFilter" aria-label="Filter by Policy" onchange="this.form.submit()">
+                <option value="" {% if not policy_filter %}selected{% endif %}>All Policies</option>
+                <option value="Open" {% if policy_filter == 'Open' %}selected{% endif %}>Open</option>
+                <option value="Restrictive" {% if policy_filter == 'Restrictive' %}selected{% endif %}>Restrictive</option>
+            </select>
+            <select name="status" id="statusFilter" aria-label="Filter by Status" onchange="this.form.submit()">
+                <option value="" {% if not status_filter %}selected{% endif %}>All Status</option>
+                <option value="ok" {% if status_filter == 'ok' %}selected{% endif %}>OK</option>
+                <option value="error" {% if status_filter == 'error' %}selected{% endif %}>Error</option>
+            </select>
+        </div>
     </div>
-  </div>
+    <!-- Hidden per_page input to persist it when filtering -->
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+  </form>
 </section>
 
 <!-- Table -->
@@ -87,23 +91,28 @@
 <!-- Pagination -->
 <nav>
   <ul>
-    <li>
+       <!-- Retain search params in links -->
+       {% set q_val = q | default(value="") %}
+       {% set type_val = type_filter | default(value="") %}
+       {% set policy_val = policy_filter | default(value="") %}
+       {% set status_val = status_filter | default(value="") %}
+       {% set params = "&per_page=" ~ per_page ~ "&q=" ~ q_val ~ "&type=" ~ type_val ~ "&policy=" ~ policy_val ~ "&status=" ~ status_val %}
        {% if page > 1 %}
-       <a href="/networks?page={{ page - 1 }}&per_page={{ per_page }}">Previous</a>
+       <a href="/networks?page={{ page - 1 }}{{ params }}" role="button" class="outline">Previous</a>
        {% else %}
-       <a href="#" role="button" class="secondary outline" aria-disabled="true">Previous</a>
+       <button disabled class="outline">Previous</button>
        {% endif %}
     </li>
   </ul>
   <ul>
-    <li>Page {{ page }} of {% if total_pages > 0 %}{{ total_pages }}{% else %}1{% endif %}</li>
+    <li><small>Page {{ page }} of {% if total_pages > 0 %}{{ total_pages }}{% else %}1{% endif %}</small></li>
   </ul>
   <ul>
     <li>
        {% if page < total_pages %}
-       <a href="/networks?page={{ page + 1 }}&per_page={{ per_page }}">Next</a>
+       <a href="/networks?page={{ page + 1 }}{{ params }}" role="button" class="outline">Next</a>
        {% else %}
-       <a href="#" role="button" class="secondary outline" aria-disabled="true">Next</a>
+       <button disabled class="outline">Next</button>
        {% endif %}
     </li>
   </ul>
@@ -113,10 +122,10 @@
     <div class="grid">
         <small>Showing {{ networks|length }} of {{ total_networks }} networks</small>
         <div style="text-align: right;">
-            <select id="perPageSelect" style="width: auto; display: inline-block;">
-                <option value="25">25 per page</option>
-                <option value="50">50 per page</option>
-                <option value="100">100 per page</option>
+            <select id="perPageSelect" style="width: auto; display: inline-block;" onchange="updatePerPage(this.value)">
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25 per page</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50 per page</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100 per page</option>
             </select>
         </div>
     </div>
@@ -126,50 +135,24 @@
 
 {% block scripts %}
 <script>
+    function updatePerPage(val) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("per_page", val);
+        url.searchParams.set("page", "1");
+        window.location.href = url.toString();
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         const searchInput = document.getElementById("searchInput");
-        const typeFilter = document.getElementById("typeFilter");
-        const policyFilter = document.getElementById("policyFilter");
-        const statusFilter = document.getElementById("statusFilter");
         const perPageSelect = document.getElementById("perPageSelect");
 
         // Per page init
         const urlParams = new URLSearchParams(window.location.search);
         if(perPageSelect) perPageSelect.value = urlParams.get("per_page") || "25";
         
-        perPageSelect?.addEventListener("change", function() {
-             const url = new URL(window.location.href);
-             url.searchParams.set("per_page", this.value);
-             url.searchParams.set("page", "1");
-             window.location.href = url.toString();
-        });
-
-        // Client-side filtering
-        function filterTable() {
-            const term = searchInput.value.toLowerCase();
-            const type = typeFilter.value.toLowerCase();
-            const policy = policyFilter.value.toLowerCase();
-            const status = statusFilter.value.toLowerCase();
-
-            const rows = document.querySelectorAll("tbody tr");
-            
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                const rowType = row.cells[2].textContent.toLowerCase();
-                const rowPolicy = row.cells[4].textContent.toLowerCase();
-                const rowStatus = row.cells[5].textContent.toLowerCase();
-
-                const matchesTerm = !term || text.includes(term);
-                const matchesType = !type || rowType.includes(type);
-                const matchesPolicy = !policy || rowPolicy.includes(policy);
-                const matchesStatus = !status || rowStatus.includes(status);
-
-                row.style.display = (matchesTerm && matchesType && matchesPolicy && matchesStatus) ? "" : "none";
-            });
-        }
-
-        [searchInput, typeFilter, policyFilter, statusFilter].forEach(el => {
-            el?.addEventListener("input", filterTable);
+        // Submit form on search input change
+        searchInput?.addEventListener("input", function() {
+            document.getElementById("searchForm").submit();
         });
     });
 </script>
