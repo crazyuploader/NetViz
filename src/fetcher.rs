@@ -83,10 +83,19 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::E
                 match resp.json::<Value>().await {
                     Ok(data) => {
                         // Pretty-print JSON with indentation
-                        let json_data = serde_json::to_string_pretty(&data)?;
-                        // Write to file
-                        fs::write(&file_path, json_data)?;
-                        info!("Successfully saved data to {:?}", file_path);
+                        match serde_json::to_string_pretty(&data) {
+                            Ok(json_data) => {
+                                // Write to file
+                                if let Err(e) = fs::write(&file_path, json_data) {
+                                    error!("Failed to write data to {:?}: {}", file_path, e);
+                                } else {
+                                    info!("Successfully saved data to {:?}", file_path);
+                                }
+                            }
+                            Err(e) => {
+                                error!("Failed to serialize data for {}: {}", url_str, e);
+                            }
+                        }
                     }
                     Err(e) => {
                         error!("Failed to parse JSON from {}: {}", url_str, e);
