@@ -9,14 +9,14 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - cargo-{{ checksum "Cargo.lock" }}
+            - cargo-{{ checksum ".circleci/config.yml" }}-{{ checksum "Cargo.lock" }}
             - cargo-
 
   save-cargo-cache:
     description: "Save cargo cache"
     steps:
       - save_cache:
-          key: cargo-{{ checksum "Cargo.lock" }}
+          key: cargo-{{ checksum ".circleci/config.yml" }}-{{ checksum "Cargo.lock" }}
           paths:
             - ~/.cargo/registry
             - ~/.cargo/git
