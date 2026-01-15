@@ -1,47 +1,46 @@
-#
-# Created by Jugal Kishore -- 2025
-#
-# Using Python 3.13
-FROM python:3.14.2-slim
+# Build stage
+FROM rust:1.92-slim AS builder
+
+# Add build dependencies
+RUN apt-get update && apt-get install -y pkg-config libssl-dev build-essential
+
+WORKDIR /app
+COPY . .
+
+# Build the application
+RUN cargo build --release
+
+# Run stage
+FROM debian:bookworm-slim
 
 # Set Time Zone to IST
 ENV TZ="Asia/Kolkata"
-ENV FLASK_ENV=production
 
-# Add required apt packages
+# Add required runtime packages
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
-    curl ca-certificates wget && \
+    curl ca-certificates openssl && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
 # Set Working Directory
 WORKDIR /app
 
-# Copy File(s)
-COPY . /app
+# Copy binary from builder
+COPY --from=builder /app/target/release/netviz /app/netviz
 
-# Make entrypoint.sh executable
-RUN chmod +x /app/entrypoint.sh
-
-# Installing Package(s)
-RUN pip3 install --upgrade pip
-
-# Copy uv binaries from its Docker Image
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+# Copy templates
+COPY templates /app/templates
 
 # Add user
 RUN groupadd --system netvizgroup && useradd --system --gid netvizgroup netvizuser --create-home
 
-# Set ownership of /app to the new user
-RUN chown -R netvizuser:netvizgroup /app
+# Create data directory and set permissions
+RUN mkdir -p /app/data/peeringdb && chown -R netvizuser:netvizgroup /app
 
 # Switch to the non-root user
-USER netvizuser 
-
-# Install Dependencies
-RUN uv sync --frozen --no-install-project --no-dev --python-preference=only-system
+USER netvizuser
 
 # Expose Port
 EXPOSE 8201
 
-CMD ["/app/entrypoint.sh"]
+CMD ["/app/netviz"]

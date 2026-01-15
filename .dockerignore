@@ -1,15 +1,24 @@
-__pycache__
-.data
-.github
+# Core ignores for build context size and security
+target
 .git
-.venv
-data
-.prettierrc
-.gitignore
-.python-version
-*.pyc
-*.pyo
-*.pyd
-.idea
-.vscode
+.env
+.github
+.circleci
+Dockerfile
+docker-compose.yml
 README.md
+renovate.json
+
+# System files
+.DS_Store
+
+# Agent storage
+.agent
+.gemini
+brain
+
+# Ignore all data except net.json
+data/*
+!data/peeringdb/
+data/peeringdb/*
+!data/peeringdb/net.json
