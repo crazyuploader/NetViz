@@ -1,20 +1,11 @@
 use crate::models::{Network, PeeringDBResponse};
 use std::fs;
 
-pub fn load_network_data() -> Vec<Network> {
+/// Load network data from the PeeringDB JSON file.
+/// Returns an error if the file cannot be read or parsed.
+pub fn load_network_data() -> Result<Vec<Network>, Box<dyn std::error::Error>> {
     let file_path = "data/peeringdb/net.json";
-
-    match fs::read_to_string(file_path) {
-        Ok(content) => match serde_json::from_str::<PeeringDBResponse<Network>>(&content) {
-            Ok(response) => response.data,
-            Err(e) => {
-                eprintln!("An error occurred while decoding JSON: {}", e);
-                Vec::new()
-            }
-        },
-        Err(_) => {
-            eprintln!("Error: The file '{}' was not found.", file_path);
-            Vec::new()
-        }
-    }
+    let content = fs::read_to_string(file_path)?;
+    let response: PeeringDBResponse<Network> = serde_json::from_str(&content)?;
+    Ok(response.data)
 }
