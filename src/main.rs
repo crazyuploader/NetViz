@@ -1,44 +1,37 @@
 //! NetViz - Network Visualization Application
 //!
-//! A web application that displays network data from PeeringDB.
-//! Built with Axum (web framework), Tera (templates), and Reqwest (HTTP client).
+//! Web application that displays network data from PeeringDB.
 
-// Import our local modules (other .rs files in src/)
-mod data; // Handles loading data from JSON files
-mod error; // Custom error types for the application
-mod fetcher; // Handles fetching data from PeeringDB API
-mod models; // Defines data structures (structs)
+mod data;
+mod error;
+mod fetcher;
+mod models;
 
-// --- External crate imports ---
-// Axum is our web framework (like Flask/Express)
 use axum::{
-    extract::{Query, State}, // Extract query params and app state from requests
-    response::{Html, IntoResponse, Json}, // Response types we can return
-    routing::get,            // HTTP GET route helper
-    Router,                  // The main router that maps URLs to handlers
+    extract::{Query, State},
+    response::{Html, IntoResponse, Json},
+    routing::get,
+    Router,
 };
-use itertools::Itertools; // Provides multiunzip and other iterator helpers
-use serde::Deserialize; // Allows parsing JSON/query strings into structs
-use std::collections::HashMap; // Key-value dictionary type
-use std::sync::Arc; // Thread-safe reference counting pointer (for shared state)
-use tera::{Context, Tera}; // Template engine (like Jinja2)
-use tracing::{error, info}; // Structured logging macros
+use itertools::Itertools;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tera::{Context, Tera};
+use tracing::{error, info};
 
-// Import from our local modules
 use crate::data::load_network_data;
 use crate::fetcher::fetch_and_save_peeringdb_data;
 use crate::models::{Network, Stats};
 
-/// Application configuration loaded from environment variables.
-/// In Rust, we use structs to group related data together.
-#[derive(Debug)] // Allows printing this struct for debugging
+/// Application configuration from environment variables.
+#[derive(Debug)]
 struct Config {
-    bind_address: String, // The address:port the server listens on
+    bind_address: String,
 }
 
 impl Config {
-    /// Creates a Config by reading from environment variables.
-    /// `unwrap_or_else` provides a default value if the env var isn't set.
+    /// Creates Config from environment variables with defaults.
     fn from_env() -> Self {
         Self {
             bind_address: std::env::var("BIND_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8201".into()),
@@ -46,37 +39,32 @@ impl Config {
     }
 }
 
-/// Shared application state - this is passed to all request handlers.
-/// Arc<AppState> allows multiple threads to access this safely.
+/// Shared application state passed to all request handlers.
 struct AppState {
-    tera: Tera,         // Template engine instance
-    data: Vec<Network>, // All network data loaded from JSON
+    tera: Tera,
+    data: Vec<Network>,
 }
 
-/// Query parameters for pagination (e.g., /networks?page=2&per_page=50)
-/// Serde's Deserialize trait automatically parses URL query strings.
+/// Query parameters for pagination.
 #[derive(Deserialize)]
 struct Pagination {
-    page: Option<usize>, // Option means it can be None (not provided)
+    page: Option<usize>,
     per_page: Option<usize>,
 }
 
-/// Query parameters for search (e.g., /search?asn=64512&name=Google)
+/// Query parameters for search.
 #[derive(Deserialize)]
 struct SearchQuery {
-    asn: Option<i64>,     // ASN to search for
-    name: Option<String>, // Network name to search for
+    asn: Option<i64>,
+    name: Option<String>,
 }
 
-/// Helper function to render templates with consistent error handling.
-/// Returns either HTML content or an error status code.
+/// Renders a template with error handling.
 fn render_template(
     tera: &Tera,
     template: &str,
     context: &Context,
 ) -> Result<Html<String>, (axum::http::StatusCode, &'static str)> {
-    // `map` transforms Ok(rendered_string) into Ok(Html(rendered_string))
-    // `map_err` transforms Err(tera_error) into our error tuple
     tera.render(template, context).map(Html).map_err(|e| {
         error!("Template render error for '{}': {}", template, e);
         (
@@ -86,8 +74,7 @@ fn render_template(
     })
 }
 
-/// Truncates a string to the specified number of characters (UTF-8 safe).
-/// Appends "..." if the string was truncated.
+/// Truncates a string to max_chars (UTF-8 safe), appending "..." if truncated.
 fn truncate_chars(s: &str, max_chars: usize) -> String {
     let char_count = s.chars().count();
     if char_count > max_chars {
@@ -98,39 +85,30 @@ fn truncate_chars(s: &str, max_chars: usize) -> String {
     }
 }
 
-/// The main entry point. `#[tokio::main]` sets up the async runtime.
-/// `async fn` means this function can pause and resume (for I/O operations).
 #[tokio::main]
 async fn main() {
-    // Initialize the logging system - logs will appear in terminal
     tracing_subscriber::fmt::init();
-
     let config = Config::from_env();
 
-    // Check if data file exists; if not, fetch it from PeeringDB
-    // `!` is the "not" operator
+    // Fetch data from PeeringDB if not cached locally
     if !std::path::Path::new("data/peeringdb/net.json").exists() {
         info!("Fetching initial data from PeeringDB...");
-        // `if let Err(e)` executes the block only if there's an error
         if let Err(e) = fetch_and_save_peeringdb_data().await {
             error!("Failed to fetch initial data: {}", e);
         }
     }
 
-    // Load network data from JSON file
-    // `match` is like a switch statement but more powerful
     let data = match load_network_data() {
         Ok(d) => {
             info!("Loaded {} networks from data file", d.len());
-            d // Return the data (no semicolon = return value)
+            d
         }
         Err(e) => {
             error!("Failed to load network data: {}", e);
-            std::process::exit(1); // Exit with error code
+            std::process::exit(1);
         }
     };
 
-    // Initialize template engine - loads all .html files from templates/
     let tera = match Tera::new("templates/**/*.html") {
         Ok(t) => t,
         Err(e) => {
@@ -139,25 +117,21 @@ async fn main() {
         }
     };
 
-    // Wrap state in Arc for thread-safe sharing between request handlers
     let state = Arc::new(AppState { tera, data });
 
-    // Define routes - each .route() maps a URL path to a handler function
     let app = Router::new()
-        .route("/", get(index)) // Dashboard
-        .route("/networks", get(networks_list)) // Paginated list
-        .route("/analytics", get(analytics)) // Analytics page
-        .route("/search", get(search_networks)) // Search page
+        .route("/", get(index))
+        .route("/networks", get(networks_list))
+        .route("/analytics", get(analytics))
+        .route("/search", get(search_networks))
         .route("/api/network-types", get(api_network_types))
         .route("/api/prefixes-distribution", get(api_prefixes_distribution))
         .route(
             "/api/ix-facility-correlation",
             get(api_ix_facility_correlation),
         )
-        .with_state(state); // Attach shared state to all routes
+        .with_state(state);
 
-    // Bind to address and start listening
-    // `await` pauses until the async operation completes
     let listener = tokio::net::TcpListener::bind(&config.bind_address)
         .await
         .unwrap_or_else(|e| {
@@ -167,28 +141,20 @@ async fn main() {
 
     info!("Server listening on http://{}", config.bind_address);
 
-    // Start the server - runs forever until killed
     if let Err(e) = axum::serve(listener, app).await {
         error!("Server error: {}", e);
         std::process::exit(1);
     }
 }
 
-/// Handler for GET / - displays the dashboard with statistics.
-/// `State(state)` extracts our AppState from the request.
-/// `impl IntoResponse` means "returns something that can become an HTTP response".
+/// GET / - Dashboard with network statistics.
 async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    // Count occurrences of each network type, policy, and scope
-    // Using &str (string slice) instead of String avoids cloning
     let mut network_types: HashMap<&str, usize> = HashMap::new();
     let mut policy_types: HashMap<&str, usize> = HashMap::new();
     let mut scopes: HashMap<&str, usize> = HashMap::new();
 
-    // Iterate over all networks and count categories
     for item in &state.data {
-        // `if let Some(ref t)` checks if the Option has a value and borrows it
         if let Some(ref t) = item.info_type {
-            // `entry().or_insert(0)` gets or creates the entry, then `+= 1` increments
             *network_types.entry(t.as_str()).or_insert(0) += 1;
         }
         if let Some(ref p) = item.policy_general {
@@ -199,7 +165,6 @@ async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         }
     }
 
-    // Convert to owned Strings for serialization (templates need owned data)
     let stats = Stats {
         total_networks: state.data.len(),
         network_types: network_types
@@ -216,26 +181,21 @@ async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
             .collect(),
     };
 
-    // Build template context (variables available in template)
     let mut context = Context::new();
     context.insert("stats", &stats);
-
-    // Take first 10 networks for "recent networks" display
     let networks: Vec<&Network> = state.data.iter().take(10).collect();
     context.insert("networks", &networks);
 
     render_template(&state.tera, "dashboard.html", &context)
 }
 
-/// Handler for GET /networks - displays paginated network list.
-/// `Query(pagination)` extracts query parameters from the URL.
+/// GET /networks - Paginated network list.
 async fn networks_list(
     State(state): State<Arc<AppState>>,
     Query(pagination): Query<Pagination>,
 ) -> impl IntoResponse {
     let total_networks = state.data.len();
 
-    // Handle empty data case
     if total_networks == 0 {
         let mut context = Context::new();
         context.insert("networks", &Vec::<&Network>::new());
@@ -246,19 +206,12 @@ async fn networks_list(
         return render_template(&state.tera, "networks.html", &context);
     }
 
-    // Get page/per_page with defaults, and validate bounds
-    // Treat 0 as 1, ensure at least 1
     let page = pagination.page.unwrap_or(1).max(1);
     let per_page = pagination.per_page.unwrap_or(25).clamp(1, 100);
-
-    // Integer division with ceiling using built-in method
     let total_pages = total_networks.div_ceil(per_page);
-
-    // Calculate slice indices safely using saturating arithmetic
     let start_index = (page - 1).saturating_mul(per_page);
     let end_index = start_index.saturating_add(per_page).min(total_networks);
 
-    // Handle out-of-bounds page numbers gracefully
     let paginated_networks: Vec<&Network> = if start_index >= total_networks {
         Vec::new()
     } else {
@@ -275,37 +228,33 @@ async fn networks_list(
     render_template(&state.tera, "networks.html", &context)
 }
 
-/// Handler for GET /analytics - displays analytics dashboard.
+/// GET /analytics - Analytics dashboard.
 async fn analytics(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let context = Context::new();
     render_template(&state.tera, "analytics.html", &context)
 }
 
-/// Handler for GET /search - searches networks by ASN or name.
+/// GET /search - Search networks by ASN or name.
 async fn search_networks(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
-    // Truncate search query to prevent abuse (max 100 chars)
     let search_name = query.name.as_ref().map(|n| {
         let mut s = n.clone();
         s.truncate(100);
         s.to_lowercase()
     });
 
-    // Only search if at least one search parameter is provided
     let results: Vec<&Network> = if query.asn.is_some() || search_name.is_some() {
         state
             .data
             .iter()
-            // `.filter()` keeps only items where the closure returns true
             .filter(|network| {
-                // `map_or` replaced with direct comparison
                 let matches_asn = query.asn == Some(network.asn);
                 let matches_name = search_name
                     .as_ref()
                     .is_some_and(|name| network.name.to_lowercase().contains(name));
-                matches_asn || matches_name // Match if either condition is true
+                matches_asn || matches_name
             })
             .collect()
     } else {
@@ -320,9 +269,8 @@ async fn search_networks(
     render_template(&state.tera, "search.html", &context)
 }
 
-/// API endpoint: GET /api/network-types - returns JSON with network type counts.
+/// GET /api/network-types - JSON network type counts.
 async fn api_network_types(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    // Collect entries as pairs to preserve label-data correspondence
     let entries: Vec<(&str, usize)> = {
         let mut network_types: HashMap<&str, usize> = HashMap::new();
         for item in &state.data {
@@ -333,28 +281,23 @@ async fn api_network_types(State(state): State<Arc<AppState>>) -> impl IntoRespo
         network_types.into_iter().collect()
     };
 
-    // Split into aligned vectors
     let (labels, data): (Vec<&str>, Vec<usize>) = entries.into_iter().unzip();
 
-    // `Json()` automatically serializes to JSON and sets Content-Type header
     Json(serde_json::json!({
         "labels": labels,
         "data": data
     }))
 }
 
-/// API endpoint: GET /api/prefixes-distribution - returns prefix counts per network.
+/// GET /api/prefixes-distribution - JSON prefix counts per network.
 async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    // Chain multiple iterator operations for cleaner code
     let data: Vec<_> = state
         .data
         .iter()
         .filter(|item| item.info_prefixes4.is_some() && item.info_prefixes6.is_some())
-        .take(15) // Limit to 15 for chart readability
+        .take(15)
         .map(|item| {
-            // Use UTF-8 safe truncation
             let name = truncate_chars(&item.name, 30);
-            // Safe to use expect() here: filter above guarantees both are Some
             (
                 name,
                 item.info_prefixes4.expect("filter guarantees Some"),
@@ -363,8 +306,6 @@ async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl I
         })
         .collect();
 
-    // Unzip tuple vector into three separate vectors using itertools::multiunzip
-    // This is much cleaner than manually folding
     let (networks, ipv4, ipv6): (Vec<_>, Vec<_>, Vec<_>) = data.into_iter().multiunzip();
 
     Json(serde_json::json!({
@@ -374,137 +315,110 @@ async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl I
     }))
 }
 
-/// API endpoint: GET /api/ix-facility-correlation - returns IX vs facility counts.
+/// GET /api/ix-facility-correlation - JSON IX vs facility counts.
 async fn api_ix_facility_correlation(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    // `filter_map` combines filter and map - returns None to skip, Some(x) to include x
     let data: Vec<_> = state
         .data
         .iter()
-        .filter_map(|item| {
-            // Match on a tuple of Options - only proceed if both are Some
-            match (item.ix_count, item.fac_count) {
-                (Some(ix), Some(fac)) => Some(serde_json::json!({
-                    "x": ix,
-                    "y": fac,
-                    "label": &item.name
-                })),
-                _ => None, // Skip if either is None
-            }
+        .filter_map(|item| match (item.ix_count, item.fac_count) {
+            (Some(ix), Some(fac)) => Some(serde_json::json!({
+                "x": ix,
+                "y": fac,
+                "label": &item.name
+            })),
+            _ => None,
         })
         .collect();
 
     Json(data)
 }
 
-// --- Unit Tests ---
-// `#[cfg(test)]` means this module is only compiled when running tests
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Tests for truncate_chars function
     mod truncate_chars_tests {
         use super::*;
 
         #[test]
         fn test_short_string_unchanged() {
-            // Arrange
-            let input = "Hello";
-            // Act
-            let result = truncate_chars(input, 10);
-            // Assert
-            assert_eq!(result, "Hello");
+            assert_eq!(truncate_chars("Hello", 10), "Hello");
         }
 
         #[test]
         fn test_exact_length_unchanged() {
-            let input = "Hello";
-            let result = truncate_chars(input, 5);
-            assert_eq!(result, "Hello");
+            assert_eq!(truncate_chars("Hello", 5), "Hello");
         }
 
         #[test]
         fn test_long_string_truncated() {
-            let input = "Hello, World!";
-            let result = truncate_chars(input, 5);
-            assert_eq!(result, "Hello...");
+            assert_eq!(truncate_chars("Hello, World!", 5), "Hello...");
         }
 
         #[test]
         fn test_empty_string() {
-            let input = "";
-            let result = truncate_chars(input, 10);
-            assert_eq!(result, "");
+            assert_eq!(truncate_chars("", 10), "");
         }
 
         #[test]
         fn test_unicode_characters() {
-            // Test with multi-byte UTF-8 characters (Japanese)
-            let input = "こんにちは世界"; // "Hello World" in Japanese (7 chars)
-            let result = truncate_chars(input, 5);
-            assert_eq!(result, "こんにちは...");
+            assert_eq!(truncate_chars("こんにちは世界", 5), "こんにちは...");
         }
 
         #[test]
         fn test_emoji_characters() {
-            // Emojis are typically 1-4 bytes but count as 1 char
-            let input = "Hello 🌍🌍🌍";
-            let result = truncate_chars(input, 8);
-            assert_eq!(result, "Hello 🌍🌍...");
+            assert_eq!(truncate_chars("Hello 🌍🌍🌍", 8), "Hello 🌍🌍...");
         }
 
         #[test]
         fn test_zero_max_chars() {
-            let input = "Hello";
-            let result = truncate_chars(input, 0);
-            assert_eq!(result, "...");
+            assert_eq!(truncate_chars("Hello", 0), "...");
         }
     }
 
-    // Tests for pagination logic
     mod pagination_tests {
+        /// Helper to simulate pagination parameter processing.
+        fn process_pagination(page: Option<usize>, per_page: Option<usize>) -> (usize, usize) {
+            let page = page.unwrap_or(1).max(1);
+            let per_page = per_page.unwrap_or(25).clamp(1, 100);
+            (page, per_page)
+        }
+
         #[test]
         fn test_page_defaults() {
-            // Test that None values get proper defaults
-            let page = None.unwrap_or(1).max(1);
-            let per_page = None.unwrap_or(25).clamp(1, 100);
+            let (page, per_page) = process_pagination(None, None);
             assert_eq!(page, 1);
             assert_eq!(per_page, 25);
         }
 
         #[test]
         fn test_page_zero_becomes_one() {
-            // Page 0 should become page 1
-            let page = Some(0_usize).unwrap_or(1).max(1);
+            let (page, _) = process_pagination(Some(0), None);
             assert_eq!(page, 1);
         }
 
         #[test]
         fn test_per_page_clamped_to_max() {
-            // Per page over 100 should be clamped to 100
-            let per_page = Some(200_usize).unwrap_or(25).clamp(1, 100);
+            let (_, per_page) = process_pagination(None, Some(200));
             assert_eq!(per_page, 100);
         }
 
         #[test]
         fn test_per_page_clamped_to_min() {
-            // Per page of 0 should be clamped to 1
-            let per_page = Some(0_usize).unwrap_or(25).clamp(1, 100);
+            let (_, per_page) = process_pagination(None, Some(0));
             assert_eq!(per_page, 1);
         }
 
         #[test]
         fn test_total_pages_calculation() {
-            // Test ceiling division for total pages
             let total_networks = 101_usize;
             let per_page = 25_usize;
             let total_pages = total_networks.div_ceil(per_page);
-            assert_eq!(total_pages, 5); // 101 / 25 = 4.04, ceiling = 5
+            assert_eq!(total_pages, 5);
         }
 
         #[test]
         fn test_slice_indices() {
-            // Test start/end index calculation
             let page = 2_usize;
             let per_page = 25_usize;
             let total_networks = 100_usize;
@@ -518,7 +432,6 @@ mod tests {
 
         #[test]
         fn test_last_page_partial() {
-            // Test when last page has fewer items
             let page = 5_usize;
             let per_page = 25_usize;
             let total_networks = 101_usize;
@@ -527,7 +440,7 @@ mod tests {
             let end_index = start_index.saturating_add(per_page).min(total_networks);
 
             assert_eq!(start_index, 100);
-            assert_eq!(end_index, 101); // Only 1 item on last page
+            assert_eq!(end_index, 101);
         }
     }
 }
