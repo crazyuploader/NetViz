@@ -16,7 +16,7 @@ jobs:
 
     steps:
       # Checkout the repository
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Install Rust toolchain
       - name: Install Rust
@@ -57,7 +57,7 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo registry
