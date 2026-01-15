@@ -1,19 +1,18 @@
 services:
-    netviz:
-        image: ghcr.io/crazyuploader/netviz:latest
-        volumes:
-            - ./data:/app/data
-        ports:
-            - "${HOST:-127.0.0.1}:8201:8201"
-        restart: unless-stopped
-        environment:
-            - FLASK_ENV=${FLASK_ENV:-PRODUCTION}
-            - PEERINGDB_API_KEY=${PEERINGDB_API_KEY}
-        logging:
-            options:
-                max-size: 256m
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:8201/"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
+  netviz:
+    image: ghcr.io/crazyuploader/netviz:latest
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "${HOST:-127.0.0.1}:8201:8201"
+    restart: unless-stopped
+    environment:
+      - PEERINGDB_API_KEY=${PEERINGDB_API_KEY}
+    logging:
+      options:
+        max-size: 32m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8201/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
