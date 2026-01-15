@@ -1,5 +1,6 @@
 //! PeeringDB data fetcher - downloads network data from the PeeringDB API.
 
+use crate::error::NetVizError;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde_json::Value;
 use std::fs;
@@ -24,8 +25,8 @@ const OUTPUT_DIR: &str = "data/peeringdb";
 /// # Rust Concepts
 /// - `async fn` - This function can be paused while waiting for I/O (like HTTP requests)
 /// - `.await` - Pauses execution until the async operation completes
-/// - `Result<(), ...>` - Returns Ok(()) on success (unit type), or an error
-pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::Error>> {
+/// - `Result<(), NetVizError>` - Returns Ok(()) on success (unit type), or a typed error
+pub async fn fetch_and_save_peeringdb_data() -> Result<(), NetVizError> {
     // Create output directory (and parent directories if needed)
     let output_path = PathBuf::from(OUTPUT_DIR);
     fs::create_dir_all(&output_path)?;
@@ -48,7 +49,7 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::E
     // `.ok_or(...)` converts None to an error
     let endpoints = api_index["data"][0]
         .as_object()
-        .ok_or("Invalid API index format")?;
+        .ok_or_else(|| NetVizError::InvalidApiResponse("Invalid API index format".to_string()))?;
 
     // Check for API key in environment variable (optional but recommended)
     let api_key = std::env::var("PEERINGDB_API_KEY").unwrap_or_default();

@@ -5,6 +5,7 @@
 
 // Import our local modules (other .rs files in src/)
 mod data; // Handles loading data from JSON files
+mod error; // Custom error types for the application
 mod fetcher; // Handles fetching data from PeeringDB API
 mod models; // Defines data structures (structs)
 
@@ -353,10 +354,11 @@ async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl I
         .map(|item| {
             // Use UTF-8 safe truncation
             let name = truncate_chars(&item.name, 30);
+            // Safe to use expect() here: filter above guarantees both are Some
             (
                 name,
-                item.info_prefixes4.unwrap(),
-                item.info_prefixes6.unwrap(),
+                item.info_prefixes4.expect("filter guarantees Some"),
+                item.info_prefixes6.expect("filter guarantees Some"),
             )
         })
         .collect();
@@ -392,4 +394,140 @@ async fn api_ix_facility_correlation(State(state): State<Arc<AppState>>) -> impl
         .collect();
 
     Json(data)
+}
+
+// --- Unit Tests ---
+// `#[cfg(test)]` means this module is only compiled when running tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Tests for truncate_chars function
+    mod truncate_chars_tests {
+        use super::*;
+
+        #[test]
+        fn test_short_string_unchanged() {
+            // Arrange
+            let input = "Hello";
+            // Act
+            let result = truncate_chars(input, 10);
+            // Assert
+            assert_eq!(result, "Hello");
+        }
+
+        #[test]
+        fn test_exact_length_unchanged() {
+            let input = "Hello";
+            let result = truncate_chars(input, 5);
+            assert_eq!(result, "Hello");
+        }
+
+        #[test]
+        fn test_long_string_truncated() {
+            let input = "Hello, World!";
+            let result = truncate_chars(input, 5);
+            assert_eq!(result, "Hello...");
+        }
+
+        #[test]
+        fn test_empty_string() {
+            let input = "";
+            let result = truncate_chars(input, 10);
+            assert_eq!(result, "");
+        }
+
+        #[test]
+        fn test_unicode_characters() {
+            // Test with multi-byte UTF-8 characters (Japanese)
+            let input = "こんにちは世界"; // "Hello World" in Japanese (7 chars)
+            let result = truncate_chars(input, 5);
+            assert_eq!(result, "こんにちは...");
+        }
+
+        #[test]
+        fn test_emoji_characters() {
+            // Emojis are typically 1-4 bytes but count as 1 char
+            let input = "Hello 🌍🌍🌍";
+            let result = truncate_chars(input, 8);
+            assert_eq!(result, "Hello 🌍🌍...");
+        }
+
+        #[test]
+        fn test_zero_max_chars() {
+            let input = "Hello";
+            let result = truncate_chars(input, 0);
+            assert_eq!(result, "...");
+        }
+    }
+
+    // Tests for pagination logic
+    mod pagination_tests {
+        #[test]
+        fn test_page_defaults() {
+            // Test that None values get proper defaults
+            let page = None.unwrap_or(1).max(1);
+            let per_page = None.unwrap_or(25).clamp(1, 100);
+            assert_eq!(page, 1);
+            assert_eq!(per_page, 25);
+        }
+
+        #[test]
+        fn test_page_zero_becomes_one() {
+            // Page 0 should become page 1
+            let page = Some(0_usize).unwrap_or(1).max(1);
+            assert_eq!(page, 1);
+        }
+
+        #[test]
+        fn test_per_page_clamped_to_max() {
+            // Per page over 100 should be clamped to 100
+            let per_page = Some(200_usize).unwrap_or(25).clamp(1, 100);
+            assert_eq!(per_page, 100);
+        }
+
+        #[test]
+        fn test_per_page_clamped_to_min() {
+            // Per page of 0 should be clamped to 1
+            let per_page = Some(0_usize).unwrap_or(25).clamp(1, 100);
+            assert_eq!(per_page, 1);
+        }
+
+        #[test]
+        fn test_total_pages_calculation() {
+            // Test ceiling division for total pages
+            let total_networks = 101_usize;
+            let per_page = 25_usize;
+            let total_pages = total_networks.div_ceil(per_page);
+            assert_eq!(total_pages, 5); // 101 / 25 = 4.04, ceiling = 5
+        }
+
+        #[test]
+        fn test_slice_indices() {
+            // Test start/end index calculation
+            let page = 2_usize;
+            let per_page = 25_usize;
+            let total_networks = 100_usize;
+
+            let start_index = (page - 1).saturating_mul(per_page);
+            let end_index = start_index.saturating_add(per_page).min(total_networks);
+
+            assert_eq!(start_index, 25);
+            assert_eq!(end_index, 50);
+        }
+
+        #[test]
+        fn test_last_page_partial() {
+            // Test when last page has fewer items
+            let page = 5_usize;
+            let per_page = 25_usize;
+            let total_networks = 101_usize;
+
+            let start_index = (page - 1).saturating_mul(per_page);
+            let end_index = start_index.saturating_add(per_page).min(total_networks);
+
+            assert_eq!(start_index, 100);
+            assert_eq!(end_index, 101); // Only 1 item on last page
+        }
+    }
 }
