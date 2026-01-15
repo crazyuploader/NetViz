@@ -1,6 +1,7 @@
 //! NetViz - Network Visualization Application
 //!
 //! Web application that displays network data from PeeringDB.
+//! Features automatic data refresh via background scheduler.
 
 mod data;
 mod error;
@@ -18,7 +19,9 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::{Context, Tera};
-use tracing::{error, info};
+use tokio::sync::RwLock;
+use tokio_cron_scheduler::{Job, JobScheduler};
+use tracing::{error, info, warn};
 
 use crate::data::load_network_data;
 use crate::fetcher::fetch_and_save_peeringdb_data;
@@ -27,25 +30,44 @@ use crate::models::{Network, Stats};
 /// Path to the network data file from PeeringDB.
 const NETWORK_DATA_PATH: &str = "data/peeringdb/net.json";
 
+/// Default cron schedule: daily at midnight UTC.
+const DEFAULT_REFRESH_CRON: &str = "0 0 0 * * *";
+
 /// Application configuration from environment variables.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Config {
+    /// Address to bind the HTTP server to.
     bind_address: String,
+    /// Cron expression for data refresh schedule.
+    refresh_cron: String,
 }
 
 impl Config {
     /// Creates Config from environment variables with defaults.
+    ///
+    /// # Environment Variables
+    ///
+    /// * `BIND_ADDRESS` - Server bind address (default: "0.0.0.0:8201")
+    /// * `REFRESH_CRON` - Cron expression for refresh schedule (default: daily at midnight)
     fn from_env() -> Self {
         Self {
             bind_address: std::env::var("BIND_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8201".into()),
+            refresh_cron: std::env::var("REFRESH_CRON")
+                .unwrap_or_else(|_| DEFAULT_REFRESH_CRON.into()),
         }
     }
 }
 
 /// Shared application state passed to all request handlers.
+///
+/// Uses `RwLock` for the data field to allow concurrent reads from handlers
+/// while permitting exclusive writes from the background refresh task.
 struct AppState {
+    /// Template engine for rendering HTML pages.
     tera: Tera,
-    data: Vec<Network>,
+    /// Network data protected by RwLock for thread-safe concurrent access.
+    /// Multiple readers can access simultaneously; writer has exclusive access.
+    data: RwLock<Vec<Network>>,
 }
 
 /// Query parameters for pagination.
@@ -88,6 +110,74 @@ fn truncate_chars(s: &str, max_chars: usize) -> String {
     }
 }
 
+/// Refreshes network data by fetching from PeeringDB and updating the shared state.
+///
+/// This function is called by the background scheduler on a cron schedule.
+///
+/// # Arguments
+///
+/// * `state` - Shared application state containing the RwLock-protected data
+async fn refresh_data(state: Arc<AppState>) {
+    info!("Starting scheduled data refresh from PeeringDB...");
+
+    // Fetch new data from PeeringDB API
+    if let Err(e) = fetch_and_save_peeringdb_data().await {
+        error!("Failed to fetch data from PeeringDB: {}", e);
+        return;
+    }
+
+    // Load the newly fetched data from disk
+    match load_network_data() {
+        Ok(new_data) => {
+            let count = new_data.len();
+            // Acquire write lock and update data
+            // This blocks readers momentarily but ensures consistency
+            let mut data_guard = state.data.write().await;
+            *data_guard = new_data;
+            info!("Data refresh complete: loaded {} networks", count);
+        }
+        Err(e) => {
+            error!("Failed to load refreshed data: {}", e);
+        }
+    }
+}
+
+/// Creates and starts the background job scheduler for periodic data refresh.
+///
+/// # Arguments
+///
+/// * `cron_expr` - Cron expression defining the refresh schedule
+/// * `state` - Shared application state to update on refresh
+///
+/// # Returns
+///
+/// * `Ok(JobScheduler)` - Running scheduler that must be kept alive
+/// * `Err(...)` - If scheduler creation or job addition fails
+async fn start_scheduler(
+    cron_expr: &str,
+    state: Arc<AppState>,
+) -> Result<JobScheduler, Box<dyn std::error::Error + Send + Sync>> {
+    let scheduler = JobScheduler::new().await?;
+
+    // Clone state for the closure (moved into the job)
+    let state_clone = state.clone();
+
+    // Create a job that runs on the specified cron schedule
+    let job = Job::new_async(cron_expr, move |_uuid, _lock| {
+        let state = state_clone.clone();
+        Box::pin(async move {
+            refresh_data(state).await;
+        })
+    })?;
+
+    scheduler.add(job).await?;
+    scheduler.start().await?;
+
+    info!("Background scheduler started with cron: {}", cron_expr);
+
+    Ok(scheduler)
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -120,7 +210,25 @@ async fn main() {
         }
     };
 
-    let state = Arc::new(AppState { tera, data });
+    // Create shared state with RwLock for concurrent access
+    let state = Arc::new(AppState {
+        tera,
+        data: RwLock::new(data),
+    });
+
+    // Start the background scheduler for periodic data refresh
+    // Gracefully degrade if scheduler fails - app still works without auto-refresh
+    let _scheduler: Option<JobScheduler> =
+        match start_scheduler(&config.refresh_cron, state.clone()).await {
+            Ok(s) => Some(s),
+            Err(e) => {
+                warn!(
+                    "Failed to start background scheduler: {}. Continuing without auto-refresh.",
+                    e
+                );
+                None
+            }
+        };
 
     let app = Router::new()
         .route("/", get(index))
@@ -140,6 +248,7 @@ async fn main() {
         .expect("TCP listener must bind to configured address for server to start");
 
     info!("Server listening on http://{}", config.bind_address);
+    info!("Data refresh scheduled: {}", config.refresh_cron);
 
     if let Err(e) = axum::serve(listener, app).await {
         error!("Server error: {}", e);
@@ -149,11 +258,14 @@ async fn main() {
 
 /// GET / - Dashboard with network statistics.
 async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    // Acquire read lock - multiple handlers can read concurrently
+    let data = state.data.read().await;
+
     let mut network_types: HashMap<&str, usize> = HashMap::new();
     let mut policy_types: HashMap<&str, usize> = HashMap::new();
     let mut scopes: HashMap<&str, usize> = HashMap::new();
 
-    for item in &state.data {
+    for item in data.iter() {
         if let Some(ref t) = item.info_type {
             *network_types.entry(t.as_str()).or_insert(0) += 1;
         }
@@ -166,7 +278,7 @@ async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     }
 
     let stats = Stats {
-        total_networks: state.data.len(),
+        total_networks: data.len(),
         network_types: network_types
             .into_iter()
             .map(|(k, v)| (k.to_string(), v))
@@ -183,7 +295,9 @@ async fn index(State(state): State<Arc<AppState>>) -> impl IntoResponse {
 
     let mut context = Context::new();
     context.insert("stats", &stats);
-    let networks: Vec<&Network> = state.data.iter().take(10).collect();
+    // Clone network data for template to allow dropping the read lock
+    let networks: Vec<Network> = data.iter().take(10).cloned().collect();
+    drop(data); // Release read lock before rendering
     context.insert("networks", &networks);
 
     render_template(&state.tera, "dashboard.html", &context)
@@ -194,11 +308,13 @@ async fn networks_list(
     State(state): State<Arc<AppState>>,
     Query(pagination): Query<Pagination>,
 ) -> impl IntoResponse {
-    let total_networks = state.data.len();
+    let data = state.data.read().await;
+    let total_networks = data.len();
 
     if total_networks == 0 {
+        drop(data);
         let mut context = Context::new();
-        context.insert("networks", &Vec::<&Network>::new());
+        context.insert("networks", &Vec::<Network>::new());
         context.insert("page", &1usize);
         context.insert("per_page", &25usize);
         context.insert("total_pages", &0usize);
@@ -212,11 +328,13 @@ async fn networks_list(
     let start_index = (page - 1).saturating_mul(per_page);
     let end_index = start_index.saturating_add(per_page).min(total_networks);
 
-    let paginated_networks: Vec<&Network> = if start_index >= total_networks {
+    // Clone paginated data before dropping lock
+    let paginated_networks: Vec<Network> = if start_index >= total_networks {
         Vec::new()
     } else {
-        state.data[start_index..end_index].iter().collect()
+        data[start_index..end_index].to_vec()
     };
+    drop(data);
 
     let mut context = Context::new();
     context.insert("networks", &paginated_networks);
@@ -239,16 +357,17 @@ async fn search_networks(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
+    let data = state.data.read().await;
+
     let search_name = query.name.as_ref().map(|n| {
         let mut s = n.clone();
         s.truncate(100);
         s.to_lowercase()
     });
 
-    let results: Vec<&Network> = if query.asn.is_some() || search_name.is_some() {
-        state
-            .data
-            .iter()
+    // Clone matching results before dropping lock
+    let results: Vec<Network> = if query.asn.is_some() || search_name.is_some() {
+        data.iter()
             .filter(|network| {
                 let matches_asn = query.asn == Some(network.asn);
                 let matches_name = search_name
@@ -256,10 +375,12 @@ async fn search_networks(
                     .is_some_and(|name| network.name.to_lowercase().contains(name));
                 matches_asn || matches_name
             })
+            .cloned()
             .collect()
     } else {
         Vec::new()
     };
+    drop(data);
 
     let mut context = Context::new();
     context.insert("results", &results);
@@ -271,28 +392,29 @@ async fn search_networks(
 
 /// GET /api/network-types - JSON network type counts.
 async fn api_network_types(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let entries: Vec<(&str, usize)> = {
-        let mut network_types: HashMap<&str, usize> = HashMap::new();
-        for item in &state.data {
-            if let Some(ref t) = item.info_type {
-                *network_types.entry(t.as_str()).or_insert(0) += 1;
-            }
-        }
-        network_types.into_iter().collect()
-    };
+    let data = state.data.read().await;
 
-    let (labels, data): (Vec<&str>, Vec<usize>) = entries.into_iter().unzip();
+    let mut network_types: HashMap<String, usize> = HashMap::new();
+    for item in data.iter() {
+        if let Some(ref t) = item.info_type {
+            *network_types.entry(t.clone()).or_insert(0) += 1;
+        }
+    }
+    drop(data);
+
+    let (labels, counts): (Vec<String>, Vec<usize>) = network_types.into_iter().unzip();
 
     Json(serde_json::json!({
         "labels": labels,
-        "data": data
+        "data": counts
     }))
 }
 
 /// GET /api/prefixes-distribution - JSON prefix counts per network.
 async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let data: Vec<_> = state
-        .data
+    let data = state.data.read().await;
+
+    let results: Vec<_> = data
         .iter()
         .filter(|item| item.info_prefixes4.is_some() && item.info_prefixes6.is_some())
         .take(15)
@@ -305,8 +427,9 @@ async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl I
             )
         })
         .collect();
+    drop(data);
 
-    let (networks, ipv4, ipv6): (Vec<_>, Vec<_>, Vec<_>) = data.into_iter().multiunzip();
+    let (networks, ipv4, ipv6): (Vec<_>, Vec<_>, Vec<_>) = results.into_iter().multiunzip();
 
     Json(serde_json::json!({
         "networks": networks,
@@ -317,8 +440,9 @@ async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl I
 
 /// GET /api/ix-facility-correlation - JSON IX vs facility counts.
 async fn api_ix_facility_correlation(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let data: Vec<_> = state
-        .data
+    let data = state.data.read().await;
+
+    let results: Vec<_> = data
         .iter()
         .filter_map(|item| match (item.ix_count, item.fac_count) {
             (Some(ix), Some(fac)) => Some(serde_json::json!({
@@ -329,8 +453,9 @@ async fn api_ix_facility_correlation(State(state): State<Arc<AppState>>) -> impl
             _ => None,
         })
         .collect();
+    drop(data);
 
-    Json(data)
+    Json(results)
 }
 
 #[cfg(test)]
