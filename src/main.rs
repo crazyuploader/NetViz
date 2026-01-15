@@ -62,6 +62,7 @@ impl Config {
 ///
 /// Uses `RwLock` for the data field to allow concurrent reads from handlers
 /// while permitting exclusive writes from the background refresh task.
+#[derive(Debug)]
 struct AppState {
     /// Template engine for rendering HTML pages.
     tera: Tera,
@@ -71,7 +72,7 @@ struct AppState {
 }
 
 /// Query parameters for pagination.
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct Pagination {
     page: Option<usize>,
     per_page: Option<usize>,
@@ -97,7 +98,7 @@ where
 }
 
 /// Query parameters for search.
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SearchQuery {
     /// AS Number to search for. Empty strings are treated as None.
     #[serde(default, deserialize_with = "empty_string_as_none")]
@@ -137,6 +138,14 @@ fn render_template(
 }
 
 /// Truncates a string to max_chars (UTF-8 safe), appending "..." if truncated.
+///
+/// # Examples
+///
+/// ```
+/// let s = "Hello, World!";
+/// assert_eq!(truncate_chars(s, 5), "Hello...");
+/// assert_eq!(truncate_chars(s, 20), "Hello, World!");
+/// ```
 fn truncate_chars(s: &str, max_chars: usize) -> String {
     let char_count = s.chars().count();
     if char_count > max_chars {
