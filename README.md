@@ -24,7 +24,7 @@ It is built with **Rust** using the **Axum** framework for superior performance 
 
 ## Prerequisites
 
-- [Rust & Cargo](https://rustup.rs/) (v1.75+)
+- [Rust & Cargo](https://rustup.rs/) (v1.92+)
 - [Docker](https://www.docker.com/) (Optional, for containerized run)
 
 ## Quick Start
