@@ -1,0 +1,89 @@
+# CircleCI configuration for Rust CI
+# Runs on every push and pull request
+version: 2.1
+
+# Define reusable commands
+commands:
+  install-rust:
+    description: "Install Rust toolchain"
+    steps:
+      - run:
+          name: Install Rust
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo 'source $HOME/.cargo/env' >> $BASH_ENV
+
+  restore-cargo-cache:
+    description: "Restore cargo cache"
+    steps:
+      - restore_cache:
+          keys:
+            - cargo-{{ checksum "Cargo.lock" }}
+            - cargo-
+
+  save-cargo-cache:
+    description: "Save cargo cache"
+    steps:
+      - save_cache:
+          key: cargo-{{ checksum "Cargo.lock" }}
+          paths:
+            - ~/.cargo/registry
+            - ~/.cargo/git
+            - target
+
+jobs:
+  build:
+    docker:
+      - image: cimg/base:stable
+    resource_class: medium
+    steps:
+      - checkout
+      - install-rust
+      - restore-cargo-cache
+
+      # Check code formatting
+      - run:
+          name: Check formatting
+          command: |
+            rustup component add rustfmt
+            cargo fmt --all -- --check
+
+      # Run clippy (Rust linter)
+      - run:
+          name: Run clippy
+          command: |
+            rustup component add clippy
+            cargo clippy --all-targets --all-features -- -D warnings
+
+      # Build the project
+      - run:
+          name: Build
+          command: cargo build --release
+
+      # Run tests
+      - run:
+          name: Run tests
+          command: cargo test --all-features
+
+      - save-cargo-cache
+
+  docs:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+    steps:
+      - checkout
+      - install-rust
+      - restore-cargo-cache
+      - run:
+          name: Build documentation
+          command: cargo doc --no-deps
+      - save-cargo-cache
+
+# Define workflow
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - build
+      - docs
