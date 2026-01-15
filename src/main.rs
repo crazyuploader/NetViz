@@ -278,7 +278,57 @@ async fn main() {
             "/api/ix-facility-correlation",
             get(api_ix_facility_correlation),
         )
-        .with_state(state);
+        .with_state(state)
+        .layer(
+            tower_http::trace::TraceLayer::new_for_http()
+                .make_span_with(|request: &axum::http::Request<_>| {
+                    let matched_path = request
+                        .extensions()
+                        .get::<axum::extract::MatchedPath>()
+                        .map(|matched| matched.as_str());
+
+                    // Try to get real IP from headers, commonly added by reverse proxies
+                    let real_ip = request
+                        .headers()
+                        .get("x-forwarded-for")
+                        .and_then(|v| v.to_str().ok())
+                        .or_else(|| {
+                            request
+                                .headers()
+                                .get("x-real-ip")
+                                .and_then(|v| v.to_str().ok())
+                        });
+
+                    let uri = request.uri().to_string();
+                    let method = request.method().as_str();
+
+                    if let Some(ip) = real_ip {
+                        // Log with the real IP if found
+                        tracing::info_span!(
+                            "http_request",
+                            method = ?method,
+                            uri = ?uri,
+                            matched_path = ?matched_path,
+                            client_ip = ?ip
+                        )
+                    } else {
+                        // Fallback to standard logging (ConnectInfo is usually handled by Axum/Hyper lower down)
+                        tracing::info_span!(
+                            "http_request",
+                            method = ?method,
+                            uri = ?uri,
+                            matched_path = ?matched_path,
+                        )
+                    }
+                })
+                .on_request(tower_http::trace::DefaultOnRequest::new().level(tracing::Level::INFO))
+                .on_response(
+                    tower_http::trace::DefaultOnResponse::new().level(tracing::Level::INFO),
+                )
+                .on_failure(
+                    tower_http::trace::DefaultOnFailure::new().level(tracing::Level::ERROR),
+                ),
+        );
 
     let listener = tokio::net::TcpListener::bind(&config.bind_address)
         .await
