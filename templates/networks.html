@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -32,19 +32,15 @@
         --danger-color: #ef4444;
         --info-color: #06b6d4;
         --background-color: #f8fafc;
-        --card-shadow:
-          0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-        --card-hover-shadow:
-          0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1),
+          0 1px 2px -1px rgb(0 0 0 / 0.1);
+        --card-hover-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+          0 4px 6px -4px rgb(0 0 0 / 0.1);
         --border-radius: 0.75rem;
       }
 
       * {
-        font-family:
-          "Inter",
-          -apple-system,
-          BlinkMacSystemFont,
-          sans-serif;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
       }
 
       body {
@@ -160,6 +156,32 @@
         outline: none;
       }
 
+      /* Unified search input group styling */
+      .filter-bar .input-group {
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+        overflow: hidden;
+      }
+
+      .filter-bar .input-group .input-group-text {
+        border: none;
+        background: white;
+        padding-left: 1rem;
+      }
+
+      .filter-bar .input-group .form-control {
+        border: none;
+        box-shadow: none !important;
+        padding: 0.75rem 1rem;
+        padding-left: 0.5rem;
+      }
+
+      .filter-bar .input-group:focus-within {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
       /* Modern Table */
       .modern-table {
         background: white;
@@ -219,8 +241,8 @@
         border-radius: 9999px;
         font-size: 0.8125rem;
         font-weight: 500;
-        font-family:
-          "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
+        font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono",
+          monospace;
       }
 
       /* Enhanced Badges */
