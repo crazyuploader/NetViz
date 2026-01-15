@@ -35,6 +35,8 @@ pub struct Network {
     pub id: i64,                        // PeeringDB internal ID
     pub name: String,                   // Network name (e.g., "Google")
     pub asn: i64,                       // Autonomous System Number
+    pub aka: Option<String>,            // Also known as (alternative name)
+    pub status: Option<String>,         // Network status (e.g., "ok", "deleted")
     pub info_type: Option<String>,      // Type: "NSP", "Content", "Cable/DSL/ISP", etc.
     pub policy_general: Option<String>, // Peering policy: "Open", "Selective", "Restrictive"
     pub info_scope: Option<String>,     // Geographic scope: "Global", "Regional", etc.

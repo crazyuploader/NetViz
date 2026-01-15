@@ -84,6 +84,18 @@ fn render_template(
     })
 }
 
+/// Truncates a string to the specified number of characters (UTF-8 safe).
+/// Appends "..." if the string was truncated.
+fn truncate_chars(s: &str, max_chars: usize) -> String {
+    let char_count = s.chars().count();
+    if char_count > max_chars {
+        let truncated: String = s.chars().take(max_chars).collect();
+        format!("{}...", truncated)
+    } else {
+        s.to_string()
+    }
+}
+
 /// The main entry point. `#[tokio::main]` sets up the async runtime.
 /// `async fn` means this function can pause and resume (for I/O operations).
 #[tokio::main]
@@ -219,25 +231,36 @@ async fn networks_list(
     State(state): State<Arc<AppState>>,
     Query(pagination): Query<Pagination>,
 ) -> impl IntoResponse {
+    let total_networks = state.data.len();
+
+    // Handle empty data case
+    if total_networks == 0 {
+        let mut context = Context::new();
+        context.insert("networks", &Vec::<&Network>::new());
+        context.insert("page", &1usize);
+        context.insert("per_page", &25usize);
+        context.insert("total_pages", &0usize);
+        context.insert("total_networks", &0usize);
+        return render_template(&state.tera, "networks.html", &context);
+    }
+
     // Get page/per_page with defaults, and validate bounds
-    // `.max(1)` ensures page is at least 1
-    // `.clamp(1, 100)` ensures per_page is between 1 and 100
+    // Treat 0 as 1, ensure at least 1
     let page = pagination.page.unwrap_or(1).max(1);
     let per_page = pagination.per_page.unwrap_or(25).clamp(1, 100);
 
-    let total_networks = state.data.len();
     // Integer division with ceiling: (a + b - 1) / b
     let total_pages = (total_networks + per_page - 1) / per_page;
 
-    // Calculate slice indices for current page
-    let start_index = (page - 1) * per_page;
-    let end_index = (start_index + per_page).min(total_networks);
+    // Calculate slice indices safely using saturating arithmetic
+    let start_index = (page - 1).saturating_mul(per_page);
+    let end_index = start_index.saturating_add(per_page).min(total_networks);
 
     // Handle out-of-bounds page numbers gracefully
-    let paginated_networks: Vec<&Network> = if start_index < total_networks {
-        state.data[start_index..end_index].iter().collect()
-    } else {
+    let paginated_networks: Vec<&Network> = if start_index >= total_networks {
         Vec::new()
+    } else {
+        state.data[start_index..end_index].iter().collect()
     };
 
     let mut context = Context::new();
@@ -297,16 +320,19 @@ async fn search_networks(
 
 /// API endpoint: GET /api/network-types - returns JSON with network type counts.
 async fn api_network_types(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let mut network_types: HashMap<&str, usize> = HashMap::new();
-    for item in &state.data {
-        if let Some(ref t) = item.info_type {
-            *network_types.entry(t.as_str()).or_insert(0) += 1;
+    // Collect entries as pairs to preserve label-data correspondence
+    let entries: Vec<(&str, usize)> = {
+        let mut network_types: HashMap<&str, usize> = HashMap::new();
+        for item in &state.data {
+            if let Some(ref t) = item.info_type {
+                *network_types.entry(t.as_str()).or_insert(0) += 1;
+            }
         }
-    }
+        network_types.into_iter().collect()
+    };
 
-    // `.copied()` converts &str to str and &usize to usize
-    let labels: Vec<&str> = network_types.keys().copied().collect();
-    let data: Vec<usize> = network_types.values().copied().collect();
+    // Split into aligned vectors
+    let (labels, data): (Vec<&str>, Vec<usize>) = entries.into_iter().unzip();
 
     // `Json()` automatically serializes to JSON and sets Content-Type header
     Json(serde_json::json!({
@@ -324,12 +350,8 @@ async fn api_prefixes_distribution(State(state): State<Arc<AppState>>) -> impl I
         .filter(|item| item.info_prefixes4.is_some() && item.info_prefixes6.is_some())
         .take(15) // Limit to 15 for chart readability
         .map(|item| {
-            // Truncate long names
-            let name = if item.name.len() > 30 {
-                format!("{}...", &item.name[..30])
-            } else {
-                item.name.clone()
-            };
+            // Use UTF-8 safe truncation
+            let name = truncate_chars(&item.name, 30);
             (
                 name,
                 item.info_prefixes4.unwrap(),

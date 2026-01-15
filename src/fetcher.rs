@@ -4,6 +4,7 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
+use tracing::{error, info, warn};
 
 /// Base URL for the PeeringDB API
 const BASE_API_URL: &str = "https://www.peeringdb.com/api/";
@@ -33,7 +34,7 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::E
         .user_agent("NetViz/0.1.0")
         .build()?;
 
-    println!("Fetching API index from {}...", BASE_API_URL);
+    info!("Fetching API index from {}...", BASE_API_URL);
 
     // `Value` is a generic JSON type - we use it when we don't know the exact structure
     // `.send().await` makes the HTTP request
@@ -51,7 +52,7 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::E
     let api_key = std::env::var("PEERINGDB_API_KEY").unwrap_or_default();
     let mut headers = HeaderMap::new();
     if !api_key.is_empty() {
-        println!("API Key for PeeringDB found, using it.");
+        info!("API Key for PeeringDB found, using it.");
         let auth_value = format!("Api-Key {}", api_key);
         // `HeaderValue::from_str()` can fail if the string contains invalid chars
         headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_value)?);
@@ -59,26 +60,39 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::E
 
     // Iterate over all API endpoints
     for (name, url) in endpoints {
-        // `.as_str()` converts JSON Value to &str (returns Option)
-        let url_str = url.as_str().ok_or("Invalid endpoint URL")?;
+        // Handle invalid URLs gracefully - skip instead of aborting
+        let url_str = match url.as_str() {
+            Some(s) => s,
+            None => {
+                warn!("Invalid endpoint URL for '{}', skipping", name);
+                continue;
+            }
+        };
+
         let file_path = output_path.join(format!("{}.json", name));
 
-        println!("Fetching data for '{}' from {}...", name, url_str);
+        info!("Fetching data for '{}' from {}...", name, url_str);
 
         // `match` handles both success and error cases
         // `.headers(headers.clone())` attaches our auth headers
         match client.get(url_str).headers(headers.clone()).send().await {
             Ok(resp) => {
-                // Try to parse response as JSON
-                if let Ok(data) = resp.json::<Value>().await {
-                    // Pretty-print JSON with indentation
-                    let json_data = serde_json::to_string_pretty(&data)?;
-                    // Write to file
-                    fs::write(&file_path, json_data)?;
-                    println!("Successfully saved data to {:?}", file_path);
+                // Handle JSON parse failures explicitly instead of silently ignoring
+                match resp.json::<Value>().await {
+                    Ok(data) => {
+                        // Pretty-print JSON with indentation
+                        let json_data = serde_json::to_string_pretty(&data)?;
+                        // Write to file
+                        fs::write(&file_path, json_data)?;
+                        info!("Successfully saved data to {:?}", file_path);
+                    }
+                    Err(e) => {
+                        error!("Failed to parse JSON from {}: {}", url_str, e);
+                        // Continue to next endpoint instead of failing
+                    }
                 }
             }
-            Err(e) => eprintln!("Error fetching data from {}: {}", url_str, e),
+            Err(e) => error!("Error fetching data from {}: {}", url_str, e),
         }
     }
 

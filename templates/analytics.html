@@ -500,9 +500,20 @@
       // Update statistics
       function updateStats(data) {
         const totalNetworks = data.length;
+
+        // Handle empty data case
+        if (totalNetworks === 0) {
+          document.getElementById("totalNetworks").textContent = "0";
+          document.getElementById("avgIxCount").textContent = "N/A";
+          document.getElementById("correlationValue").textContent = "N/A";
+          return;
+        }
+
         const avgIxCount =
           data.reduce((sum, point) => sum + point.x, 0) / totalNetworks;
-        const correlation = calculateCorrelation(data);
+
+        // Only calculate correlation if we have at least 2 data points
+        const correlation = totalNetworks > 1 ? calculateCorrelation(data) : 0;
 
         document.getElementById("totalNetworks").textContent =
           totalNetworks.toLocaleString();
