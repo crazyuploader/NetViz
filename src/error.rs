@@ -24,4 +24,8 @@ pub enum NetVizError {
     /// Unexpected API response format.
     #[error("Invalid API response: {0}")]
     InvalidApiResponse(String),
+
+    /// Polars error.
+    #[error("Polars error: {0}")]
+    Polars(#[from] polars::prelude::PolarsError),
 }

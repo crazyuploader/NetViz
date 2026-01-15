@@ -1,553 +1,69 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Search Networks - Network Data Visualization</title>
+{% extends "base.html" %}
 
-    <!-- Bootstrap 5.3.2 (latest stable) -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-      crossorigin="anonymous"
-    />
+{% block title %}Search - NetViz{% endblock %}
 
-    <!-- Modern fonts and icons -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
+{% block content %}
+<hgroup>
+  <h1>Search</h1>
+  <p>Find networks by name or ASN</p>
+</hgroup>
 
-    <style>
-      :root {
-        --primary-color: #3b82f6;
-        --secondary-color: #64748b;
-        --success-color: #10b981;
-        --warning-color: #f59e0b;
-        --danger-color: #ef4444;
-        --info-color: #06b6d4;
-        --background-color: #f8fafc;
-        --card-shadow:
-          0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-        --card-hover-shadow:
-          0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        --border-radius: 0.75rem;
-      }
-
-      * {
-        font-family:
-          "Inter",
-          -apple-system,
-          BlinkMacSystemFont,
-          sans-serif;
-      }
-
-      body {
-        background-color: var(--background-color);
-        color: #1e293b;
-        line-height: 1.6;
-      }
-
-      /* Enhanced Modern Navbar */
-      .navbar {
-        background: linear-gradient(
-          135deg,
-          #1e293b 0%,
-          #334155 100%
-        ) !important;
-        box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.1);
-        padding: 1rem 0;
-      }
-
-      .navbar-brand {
-        font-weight: 700;
-        font-size: 1.25rem;
-        letter-spacing: -0.025em;
-        color: white !important;
-        text-decoration: none;
-      }
-
-      .navbar-brand:hover {
-        color: rgba(255, 255, 255, 0.9) !important;
-      }
-
-      .nav-link {
-        font-weight: 500;
-        transition: all 0.2s ease;
-        border-radius: 0.375rem;
-        margin: 0 0.25rem;
-        padding: 0.5rem 1rem !important;
-        color: rgba(255, 255, 255, 0.85) !important;
-        text-decoration: none;
-      }
-
-      .nav-link:hover {
-        background-color: rgba(255, 255, 255, 0.15);
-        transform: translateY(-1px);
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .nav-link.active {
-        background-color: var(--primary-color);
-        color: white !important;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-      }
-
-      .nav-link i {
-        margin-right: 0.375rem;
-        opacity: 0.9;
-      }
-
-      .nav-link:hover i {
-        opacity: 1;
-      }
-
-      /* Modern Card */
-      .modern-card {
-        background: white;
-        border: none;
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
-        overflow: hidden;
-      }
-
-      .modern-card:hover {
-        box-shadow: var(--card-hover-shadow);
-      }
-
-      .modern-card .card-header {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-bottom: 1px solid #e2e8f0;
-        padding: 1.5rem;
-        border-radius: 0;
-      }
-
-      .modern-card .card-header h5 {
-        margin: 0;
-        font-weight: 600;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      /* Search and Filter Bar */
-      .filter-bar {
-        background: white;
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-      }
-
-      .search-input {
-        border: 2px solid #e2e8f0;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-        transition: all 0.2s ease;
-        font-size: 0.875rem;
-      }
-
-      .search-input:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        outline: none;
-      }
-
-      /* Modern Table */
-      .modern-table {
-        background: white;
-        border-radius: var(--border-radius);
-        overflow: hidden;
-        box-shadow: var(--card-shadow);
-      }
-
-      .table {
-        margin: 0;
-      }
-
-      .table thead th {
-        background: #f8fafc;
-        border-bottom: 2px solid #e2e8f0;
-        font-weight: 600;
-        color: #374151;
-        padding: 1rem 0.75rem;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-
-      .table tbody td {
-        padding: 1rem 0.75rem;
-        border-bottom: 1px solid #f1f5f9;
-        vertical-align: middle;
-        font-size: 0.875rem;
-      }
-
-      .table tbody tr:hover {
-        background-color: #f8fafc;
-      }
-
-      .table tbody tr:last-child td {
-        border-bottom: none;
-      }
-
-      /* Network Name Styling */
-      .network-name {
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 0.25rem;
-      }
-
-      .network-aka {
-        color: var(--secondary-color);
-        font-size: 0.8125rem;
-        font-style: italic;
-      }
-
-      /* ASN Styling */
-      .asn-badge {
-        background: #f1f5f9;
-        color: #374151;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        font-family:
-          "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
-      }
-
-      /* Enhanced Badges */
-      .modern-badge {
-        padding: 0.375rem 0.875rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-
-      .badge-type-primary {
-        background: rgba(59, 130, 246, 0.1);
-        color: #1d4ed8;
-        border: 1px solid rgba(59, 130, 246, 0.2);
-      }
-
-      .badge-policy-open {
-        background: rgba(16, 185, 129, 0.1);
-        color: #047857;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-      }
-
-      .badge-policy-restrictive {
-        background: rgba(245, 158, 11, 0.1);
-        color: #92400e;
-        border: 1px solid rgba(245, 158, 11, 0.2);
-      }
-
-      .badge-policy-unknown {
-        background: rgba(100, 116, 139, 0.1);
-        color: #475569;
-        border: 1px solid rgba(100, 116, 139, 0.2);
-      }
-
-      .badge-status-ok {
-        background: rgba(16, 185, 129, 0.1);
-        color: #047857;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-      }
-
-      .badge-status-error {
-        background: rgba(239, 68, 68, 0.1);
-        color: #b91c1c;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-      }
-
-      /* Statistics Display */
-      .stat-number {
-        font-weight: 600;
-        color: #1e293b;
-      }
-
-      .stat-na {
-        color: var(--secondary-color);
-        font-style: italic;
-        font-size: 0.8125rem;
-      }
-
-      /* Responsive adjustments */
-      @media (max-width: 768px) {
-        .table-responsive {
-          border-radius: var(--border-radius);
-          box-shadow: var(--card-shadow);
-        }
-
-        .modern-card .card-header {
-          padding: 1rem;
-        }
-
-        .filter-bar {
-          padding: 1rem;
-        }
-
-        .table thead th,
-        .table tbody td {
-          padding: 0.75rem 0.5rem;
-          font-size: 0.8125rem;
-        }
-
-        .network-name {
-          font-size: 0.875rem;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Modern Navigation -->
-    <nav class="navbar navbar-expand-lg">
-      <div class="container">
-        <a class="navbar-brand" href="/">
-          <i class="bi bi-diagram-3"></i>
-          Network Analytics
-        </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <div class="navbar-nav ms-auto">
-            <a class="nav-link" href="/">
-              <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-            <a class="nav-link" href="/networks">
-              <i class="bi bi-network-wired"></i> Networks
-            </a>
-            <a class="nav-link" href="/analytics">
-              <i class="bi bi-graph-up"></i> Analytics
-            </a>
-            <a class="nav-link active" href="/search">
-              <i class="bi bi-search"></i> Search
-            </a>
-          </div>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container-fluid px-4 py-4">
-      <!-- Search Form -->
-      <div class="filter-bar">
-        <form action="/search" method="get">
-          <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-              <label for="asnInput" class="form-label">AS Number</label>
-              <input
-                type="number"
-                class="form-control search-input"
-                id="asnInput"
-                name="asn"
-                value="{{ query_asn | default(value='') }}"
-                placeholder="e.g., 6453"
-              />
-            </div>
-            <div class="col-md-6">
-              <label for="nameInput" class="form-label">Network Name</label>
-              <input
-                type="text"
-                class="form-control search-input"
-                id="nameInput"
-                name="name"
-                value="{{ query_name | default(value='') }}"
-                placeholder="e.g., Google"
-              />
-            </div>
-            <div class="col-md-2">
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-search me-2"></i>Search
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <!-- Search Results Table -->
-      <div class="modern-card">
-        <div class="card-header">
-          <h5>
-            <i class="bi bi-table text-primary"></i>
-            Search Results
-          </h5>
-        </div>
-        <div class="card-body p-0">
-          {% if results %}
-          <div class="table-summary mx-3 mt-3">
-            <div class="table-actions">
-              <p class="table-summary-text">
-                <i class="bi bi-info-circle"></i>
-                Found {{ results | length }} network(s) matching your search.
-              </p>
-            </div>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th scope="col">
-                    <i class="bi bi-building me-1"></i>
-                    Network
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-hash me-1"></i>
-                    ASN
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-tag me-1"></i>
-                    Type
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-diagram-2 me-1"></i>
-                    IPv4
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-diagram-3 me-1"></i>
-                    IPv6
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-router me-1"></i>
-                    IX
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-building-gear me-1"></i>
-                    Facilities
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-shield-check me-1"></i>
-                    Policy
-                  </th>
-                  <th scope="col">
-                    <i class="bi bi-activity me-1"></i>
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for network in results %}
-                <tr>
-                  <td>
-                    <div>
-                      <div class="network-name">{{ network.name }}</div>
-                      {% if network.aka %}
-                      <div class="network-aka">{{ network.aka }}</div>
-                      {% endif %}
-                    </div>
-                  </td>
-                  <td>
-                    <span class="asn-badge">AS{{ network.asn }}</span>
-                  </td>
-                  <td>
-                    <span class="badge modern-badge badge-type-primary">
-                      {{ network.info_type or 'Unknown' }}
-                    </span>
-                  </td>
-                  <td>
-                    {% if network.info_prefixes4 %}
-                    <span class="stat-number"
-                      >{{ network.info_prefixes4 }}</span
-                    >
-                    {% else %}
-                    <span class="stat-na">N/A</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if network.info_prefixes6 %}
-                    <span class="stat-number"
-                      >{{ network.info_prefixes6 }}</span
-                    >
-                    {% else %}
-                    <span class="stat-na">N/A</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <span class="stat-number">{{ network.ix_count or 0 }}</span>
-                  </td>
-                  <td>
-                    <span class="stat-number"
-                      >{{ network.fac_count or 0 }}</span
-                    >
-                  </td>
-                  <td>
-                    {% if network.policy_general == 'Open' %}
-                    <span class="badge modern-badge badge-policy-open"
-                      >Open</span
-                    >
-                    {% elif network.policy_general == 'Restrictive' %}
-                    <span class="badge modern-badge badge-policy-restrictive"
-                      >Restrictive</span
-                    >
-                    {% else %}
-                    <span class="badge modern-badge badge-policy-unknown">
-                      {{ network.policy_general or 'Unknown' }}
-                    </span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if network.status == 'ok' %}
-                    <span class="badge modern-badge badge-status-ok">
-                      <i class="bi bi-check-circle me-1"></i>OK
-                    </span>
-                    {% else %}
-                    <span class="badge modern-badge badge-status-error">
-                      <i class="bi bi-exclamation-triangle me-1"></i>{{
-                      network.status }}
-                    </span>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% else %}
-          <div class="alert alert-info m-3" role="alert">
-            No networks found matching your criteria. Please try a different
-            search.
-          </div>
-          {% endif %}
-        </div>
-      </div>
+<article>
+  <form action="/search" method="get">
+    <div class="grid">
+      <label>
+        AS Number
+        <input type="number" name="asn" placeholder="e.g. 6453" value="{{ query_asn | default(value='') }}">
+      </label>
+      <label>
+        Network Name
+        <input type="text" name="name" placeholder="e.g. Google" value="{{ query_name | default(value='') }}">
+      </label>
+      <label>
+        &nbsp;
+        <button type="submit">Search</button>
+      </label>
     </div>
+  </form>
+</article>
 
-    <!-- Bootstrap JS -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-      crossorigin="anonymous"
-    ></script>
-    <footer class="footer mt-auto py-3 bg-light">
-      <div class="container text-center">
-        <span class="text-muted">
-          <a
-            href="https://github.com/crazyuploader/NetViz"
-            target="_blank"
-            class="text-decoration-none text-muted"
-          >
-            <i class="bi bi-github me-2"></i>NetViz on GitHub
-          </a>
-        </span>
-      </div>
-    </footer>
-  </body>
-</html>
+{% if results | length > 0 %}
+<article>
+  <header>Results ({{ results | length }})</header>
+  <div class="overflow-auto">
+    <table class="striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>ASN</th>
+          <th>Type</th>
+          <th>Prefixes (v4/v6)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for network in results %}
+        <tr>
+          <td>
+            <strong>{{ network.name }}</strong>
+            {% if network.aka %}<br><small>{{ network.aka }}</small>{% endif %}
+          </td>
+          <td><mark>AS{{ network.asn }}</mark></td>
+          <td>{{ network.info_type or 'Unknown' }}</td>
+          <td>{{ network.info_prefixes4 or 0 }} / {{ network.info_prefixes6 or 0 }}</td>
+          <td>
+              {% if network.status == 'ok' %}OK{% else %}{{ network.status }}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% elif query_asn or query_name %}
+<article>
+  <p>No results found for your query.</p>
+</article>
+{% endif %}
+
+{% endblock %}

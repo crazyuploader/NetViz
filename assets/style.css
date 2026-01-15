@@ -1,0 +1,123 @@
+/* Custom Styling for NetViz on top of Pico CSS v2 */
+
+:root {
+  --pico-font-family: "Inter", system-ui, -apple-system, sans-serif;
+  --pico-primary: #3b82f6;
+  --pico-primary-background: #3b82f6;
+  --pico-primary-hover: #2563eb;
+  --pico-primary-underline: rgba(59, 130, 246, 0.5);
+
+  --pico-border-radius: 0.5rem;
+  --pico-form-element-spacing-vertical: 0.75rem;
+  --pico-form-element-spacing-horizontal: 1rem;
+}
+
+/* Typography */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+body {
+  font-weight: 400;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Component Overrides & Custom Utilities */
+
+.card {
+  padding: var(--pico-block-spacing-vertical)
+    var(--pico-block-spacing-horizontal);
+  border-radius: var(--pico-border-radius);
+  background: var(--pico-card-background-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin-bottom: var(--pico-block-spacing-vertical);
+  border: 1px solid var(--pico-muted-border-color);
+}
+
+.stat-card {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--pico-primary);
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--pico-muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Charts */
+.chart-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+}
+
+/* Grid adjustments */
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--pico-grid-column-gap);
+  margin-bottom: var(--pico-block-spacing-vertical);
+}
+
+/* Navbar */
+nav strong {
+  font-size: 1.25rem;
+  background: -webkit-linear-gradient(45deg, var(--pico-primary), #8b5cf6);
+  background: linear-gradient(45deg, var(--pico-primary), #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Badge styled pills */
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.5em;
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: var(--pico-border-radius);
+  background-color: var(--pico-primary);
+  color: white;
+  margin-right: 0.25rem;
+}
+
+.badge-secondary {
+  background-color: var(--pico-secondary-background);
+  color: var(--pico-color);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main > * {
+  animation: fadeIn 0.4s ease-out;
+}

@@ -16,6 +16,9 @@ FROM debian:bookworm-slim
 # Set Time Zone to IST
 ENV TZ="Asia/Kolkata"
 
+# Set logging level
+ENV RUST_LOG="info"
+
 # Add required runtime packages
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \

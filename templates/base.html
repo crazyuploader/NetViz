@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Network Data Visualization Dashboard">
+    <title>{% block title %}NetViz{% endblock %}</title>
+    
+    <!-- Pico CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/assets/style.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <header class="container">
+      <nav>
+        <ul>
+          <li>
+            <a href="/" class="contrast">
+              <strong><i class="bi bi-diagram-3"></i> NetViz</strong>
+            </a>
+          </li>
+        </ul>
+        <ul>
+          <li><a href="/" id="nav-dashboard">Dashboard</a></li>
+          <li><a href="/networks" id="nav-networks">Networks</a></li>
+          <li><a href="/analytics" id="nav-analytics">Analytics</a></li>
+          <li><a href="/search" id="nav-search">Search</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container">
+      <hr>
+      <small>
+        Built with <a href="https://www.rust-lang.org/">Rust</a>, 
+        <a href="https://pola.rs/">Polars</a>, and 
+        <a href="https://picocss.com/">Pico CSS</a>.
+      </small>
+    </footer>
+
+    <script>
+      // Simple active state highlighting
+      document.addEventListener('DOMContentLoaded', () => {
+        const path = window.location.pathname;
+        if (path === '/' || path === '') {
+          document.querySelector('#nav-dashboard').setAttribute('aria-current', 'page');
+        } else if (path.startsWith('/networks')) {
+          document.querySelector('#nav-networks').setAttribute('aria-current', 'page');
+        } else if (path.startsWith('/analytics')) {
+          document.querySelector('#nav-analytics').setAttribute('aria-current', 'page');
+        } else if (path.startsWith('/search')) {
+           document.querySelector('#nav-search').setAttribute('aria-current', 'page');
+        }
+      });
+    </script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

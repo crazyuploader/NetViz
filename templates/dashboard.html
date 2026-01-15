@@ -1,850 +1,219 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard - Network Data Visualization</title>
+{% extends "base.html" %}
 
-    <!-- Modern Chart.js version -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+{% block title %}Dashboard - NetViz{% endblock %}
 
-    <!-- Bootstrap 5.3.2 (latest stable) -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-      crossorigin="anonymous"
-    />
+{% block content %}
+<hgroup>
+  <h1>Dashboard</h1>
+  <p>Network statistics and insights</p>
+</hgroup>
 
-    <!-- Modern fonts and icons -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
+<!-- Stats Grid -->
+<div class="grid-stats">
+  <article class="stat-card">
+    <div class="stat-value">{{ stats.total_networks }}</div>
+    <div class="stat-label">Total Networks</div>
+  </article>
+  
+  <article class="stat-card">
+    <div class="stat-value">{{ stats.network_types | length }}</div>
+    <div class="stat-label">Network Types</div>
+  </article>
 
-    <style>
-      :root {
-        --primary-color: #3b82f6;
-        --secondary-color: #64748b;
-        --success-color: #10b981;
-        --warning-color: #f59e0b;
-        --info-color: #06b6d4;
-        --purple-color: #8b5cf6;
-        --background-color: #f8fafc;
-        --card-shadow:
-          0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-        --card-hover-shadow:
-          0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        --border-radius: 0.75rem;
-      }
+  <article class="stat-card">
+    <div class="stat-value">{{ stats.policy_types | length }}</div>
+    <div class="stat-label">Policy Types</div>
+  </article>
 
-      * {
-        font-family:
-          "Inter",
-          -apple-system,
-          BlinkMacSystemFont,
-          sans-serif;
-      }
+  <article class="stat-card">
+    <div class="stat-value">{{ stats.scopes["Global"] | default(value=0) }}</div>
+    <div class="stat-label">Global Scope</div>
+  </article>
+</div>
 
-      body {
-        background-color: var(--background-color);
-        color: #1e293b;
-        line-height: 1.6;
-      }
-
-      /* Enhanced Modern Navbar */
-      .navbar {
-        background: linear-gradient(
-          135deg,
-          #1e293b 0%,
-          #334155 100%
-        ) !important;
-        box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.1);
-        padding: 1rem 0;
-      }
-
-      .navbar-brand {
-        font-weight: 700;
-        font-size: 1.25rem;
-        letter-spacing: -0.025em;
-        color: white !important;
-        text-decoration: none;
-      }
-
-      .navbar-brand:hover {
-        color: rgba(255, 255, 255, 0.9) !important;
-      }
-
-      .nav-link {
-        font-weight: 500;
-        transition: all 0.2s ease;
-        border-radius: 0.375rem;
-        margin: 0 0.25rem;
-        padding: 0.5rem 1rem !important;
-        color: rgba(255, 255, 255, 0.85) !important;
-        text-decoration: none;
-      }
-
-      .nav-link:hover {
-        background-color: rgba(255, 255, 255, 0.15);
-        transform: translateY(-1px);
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .nav-link.active {
-        background-color: var(--primary-color);
-        color: white !important;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-      }
-
-      .nav-link i {
-        margin-right: 0.375rem;
-        opacity: 0.9;
-      }
-
-      .nav-link:hover i {
-        opacity: 1;
-      }
-
-      /* Modern Stats Cards */
-      .stats-card {
-        background: white;
-        border: none;
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
-        overflow: hidden;
-        position: relative;
-      }
-
-      .stats-card:hover {
-        box-shadow: var(--card-hover-shadow);
-        transform: translateY(-3px);
-      }
-
-      .stats-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: var(--accent-color);
-      }
-
-      .stats-card.primary::before {
-        background: var(--primary-color);
-      }
-      .stats-card.success::before {
-        background: var(--success-color);
-      }
-      .stats-card.warning::before {
-        background: var(--warning-color);
-      }
-      .stats-card.info::before {
-        background: var(--info-color);
-      }
-
-      .stats-card .card-body {
-        padding: 2rem 1.5rem;
-      }
-
-      .stats-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin: 0.5rem 0;
-        line-height: 1;
-      }
-
-      .stats-label {
-        color: var(--secondary-color);
-        font-size: 0.875rem;
-        font-weight: 600;
-        margin: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-
-      .stats-icon {
-        font-size: 2.5rem;
-        opacity: 0.8;
-      }
-
-      /* Chart Cards */
-      .chart-card {
-        background: white;
-        border: none;
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
-        overflow: hidden;
-      }
-
-      .chart-card:hover {
-        box-shadow: var(--card-hover-shadow);
-        transform: translateY(-2px);
-      }
-
-      .chart-card .card-header {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-bottom: 1px solid #e2e8f0;
-        padding: 1.5rem;
-        border-radius: 0;
-      }
-
-      .chart-card .card-header h5 {
-        margin: 0;
-        font-weight: 600;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      /* Chart Container */
-      .chart-container {
-        height: 450px;
-        position: relative;
-        margin: 0;
-        padding: 1.5rem;
-      }
-
-      /* Network Cards */
-      .network-card {
-        background: white;
-        border: none;
-        border-radius: var(--border-radius);
-        box-shadow: var(--card-shadow);
-        transition: all 0.3s ease;
-        height: 100%;
-        overflow: hidden;
-      }
-
-      .network-card:hover {
-        box-shadow: var(--card-hover-shadow);
-        transform: translateY(-5px);
-      }
-
-      .network-card .card-body {
-        padding: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      .network-card .card-title {
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 0.75rem;
-        font-size: 1.1rem;
-      }
-
-      .network-card .asn-info {
-        color: var(--secondary-color);
-        font-size: 0.875rem;
-        margin-bottom: 0.75rem;
-        font-weight: 500;
-      }
-
-      .network-badges {
-        margin-bottom: 1rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-
-      .network-badges .badge {
-        font-size: 0.75rem;
-        padding: 0.375rem 0.75rem;
-        border-radius: 9999px;
-        font-weight: 500;
-      }
-
-      .network-card .btn {
-        margin-top: auto;
-        align-self: flex-start;
-      }
-
-      /* Loading States */
-      .loading-spinner {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 300px;
-        flex-direction: column;
-        gap: 1rem;
-        color: var(--secondary-color);
-      }
-
-      .spinner-border {
-        color: var(--primary-color);
-      }
-
-      /* Error States */
-      .error-state {
-        text-align: center;
-        padding: 3rem;
-        color: var(--secondary-color);
-      }
-
-      .error-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        color: #dc2626;
-      }
-
-      /* Responsive adjustments */
-      @media (max-width: 768px) {
-        .chart-container {
-          height: 300px;
-          padding: 1rem;
-        }
-
-        .stats-card .card-body {
-          padding: 1.5rem 1rem;
-        }
-
-        .stats-value {
-          font-size: 2rem;
-        }
-
-        .network-card .card-body {
-          padding: 1rem;
-        }
-      }
-
-      /* Custom scrollbar for network cards */
-      .networks-container {
-        max-height: 600px;
-        overflow-y: auto;
-      }
-
-      .networks-container::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      .networks-container::-webkit-scrollbar-track {
-        background: #f1f5f9;
-        border-radius: 3px;
-      }
-
-      .networks-container::-webkit-scrollbar-thumb {
-        background: var(--secondary-color);
-        border-radius: 3px;
-      }
-
-      .networks-container::-webkit-scrollbar-thumb:hover {
-        background: var(--primary-color);
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Modern Navigation -->
-    <nav class="navbar navbar-expand-lg">
-      <div class="container">
-        <a class="navbar-brand" href="/">
-          <i class="bi bi-diagram-3"></i>
-          Network Analytics
-        </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <div class="navbar-nav ms-auto">
-            <a class="nav-link active" href="/">
-              <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-            <a class="nav-link" href="/networks">
-              <i class="bi bi-network-wired"></i> Networks
-            </a>
-            <a class="nav-link" href="/analytics">
-              <i class="bi bi-graph-up"></i> Analytics
-            </a>
-            <a class="nav-link" href="/search">
-              <i class="bi bi-search"></i> Search
-            </a>
-          </div>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container-fluid px-4 py-4">
-      <!-- Stats Row -->
-      <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-          <div class="card stats-card primary">
-            <div class="card-body">
-              <div class="d-flex align-items-center justify-content-between">
-                <div>
-                  <p class="stats-label">Total Networks</p>
-                  <h2 class="stats-value text-primary">
-                    {{ stats.total_networks }}
-                  </h2>
-                </div>
-                <div class="text-primary stats-icon">
-                  <i class="bi bi-diagram-3"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3 mb-3">
-          <div class="card stats-card success">
-            <div class="card-body">
-              <div class="d-flex align-items-center justify-content-between">
-                <div>
-                  <p class="stats-label">Network Types</p>
-                  <h2 class="stats-value text-success">
-                    {{ stats.network_types | length }}
-                  </h2>
-                </div>
-                <div class="text-success stats-icon">
-                  <i class="bi bi-collection"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3 mb-3">
-          <div class="card stats-card warning">
-            <div class="card-body">
-              <div class="d-flex align-items-center justify-content-between">
-                <div>
-                  <p class="stats-label">Policy Types</p>
-                  <h2 class="stats-value text-warning">
-                    {{ stats.policy_types | length }}
-                  </h2>
-                </div>
-                <div class="text-warning stats-icon">
-                  <i class="bi bi-shield-check"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3 mb-3">
-          <div class="card stats-card info">
-            <div class="card-body">
-              <div class="d-flex align-items-center justify-content-between">
-                <div>
-                  <p class="stats-label">Global Scope</p>
-                  <h2 class="stats-value text-info">
-                    {{ stats.scopes["Global"] | default(value=0) }}
-                  </h2>
-                </div>
-                <div class="text-info stats-icon">
-                  <i class="bi bi-globe"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Charts Row -->
-      <div class="row mb-4">
-        <div class="col-lg-6 mb-4">
-          <div class="card chart-card">
-            <div class="card-header">
-              <h5>
-                <i class="bi bi-pie-chart text-primary"></i>
-                Network Types Distribution
-              </h5>
-            </div>
-            <div class="card-body">
-              <div class="chart-container">
-                <div class="loading-spinner" id="networkTypesLoading">
-                  <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                  <p>Loading network types...</p>
-                </div>
-                <canvas id="networkTypesChart" style="display: none"></canvas>
-                <div
-                  class="error-state"
-                  id="networkTypesError"
-                  style="display: none"
-                >
-                  <i class="bi bi-exclamation-triangle"></i>
-                  <h6>Failed to load network types</h6>
-                  <button
-                    class="btn btn-sm btn-primary"
-                    onclick="loadNetworkTypesChart()"
-                  >
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Retry
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-6 mb-4">
-          <div class="card chart-card">
-            <div class="card-header">
-              <h5>
-                <i class="bi bi-bar-chart text-success"></i>
-                IPv4 vs IPv6 Prefixes
-              </h5>
-            </div>
-            <div class="card-body">
-              <div class="chart-container">
-                <div class="loading-spinner" id="prefixesLoading">
-                  <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                  <p>Loading prefix data...</p>
-                </div>
-                <canvas id="prefixesChart" style="display: none"></canvas>
-                <div
-                  class="error-state"
-                  id="prefixesError"
-                  style="display: none"
-                >
-                  <i class="bi bi-exclamation-triangle"></i>
-                  <h6>Failed to load prefix data</h6>
-                  <button
-                    class="btn btn-sm btn-primary"
-                    onclick="loadPrefixesChart()"
-                  >
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Retry
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Networks -->
-      <div class="row">
-        <div class="col-12">
-          <div class="card chart-card">
-            <div class="card-header">
-              <h5>
-                <i class="bi bi-clock-history text-purple"></i>
-                Recent Networks
-              </h5>
-            </div>
-            <div class="card-body">
-              <div class="networks-container">
-                <div class="row">
-                  {% for network in networks %}
-                  <div class="col-xl-4 col-lg-6 mb-3">
-                    <div class="card network-card">
-                      <div class="card-body">
-                        <h6 class="card-title">
-                          <i class="bi bi-router text-primary me-2"></i>
-                          {{ network.name }}
-                        </h6>
-                        <p class="asn-info">
-                          <i class="bi bi-hash"></i>
-                          ASN: {{ network.asn }}
-                        </p>
-                        <div class="network-badges">
-                          <span class="badge bg-primary">
-                            {{ network.info_type or 'Unknown' }}
-                          </span>
-                          <span class="badge bg-secondary">
-                            {{ network.policy_general or 'Unknown' }}
-                          </span>
-                        </div>
-                        {% if network.website %}
-                        <a
-                          href="{{ network.website }}"
-                          class="btn btn-sm btn-outline-primary"
-                          target="_blank"
-                        >
-                          <i class="bi bi-box-arrow-up-right me-1"></i>
-                          Visit Website
-                        </a>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-                  {% endfor %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+<!-- Charts Grid -->
+<div class="grid">
+  <article>
+    <header>Network Types Distribution</header>
+    <div class="chart-container">
+      <div id="networkTypesLoading" aria-busy="true">Loading...</div>
+      <canvas id="networkTypesChart" style="display: none;"></canvas>
+      <div id="networkTypesError" style="display: none;">
+        <p class="headings">Failed to load data</p>
+        <button class="outline" onclick="loadNetworkTypesChart()">Retry</button>
       </div>
     </div>
+  </article>
 
-    <!-- Bootstrap JS -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-      crossorigin="anonymous"
-    ></script>
+  <article>
+    <header>IPv4 vs IPv6 Prefixes (Top 15)</header>
+    <div class="chart-container">
+      <div id="prefixesLoading" aria-busy="true">Loading...</div>
+      <canvas id="prefixesChart" style="display: none;"></canvas>
+      <div id="prefixesError" style="display: none;">
+        <p>Failed to load data</p>
+        <button class="outline" onclick="loadPrefixesChart()">Retry</button>
+      </div>
+    </div>
+  </article>
+</div>
 
-    <script>
-      let networkTypesChart = null;
-      let prefixesChart = null;
+<!-- Recent Networks Table -->
+<article>
+  <header>Recent Networks</header>
+  <div class="overflow-auto">
+    <table class="striped">
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">ASN</th>
+          <th scope="col">Type</th>
+          <th scope="col">Policy</th>
+          <th scope="col">Website</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for network in networks %}
+        <tr>
+          <td><strong>{{ network.name }}</strong></td>
+          <td>{{ network.asn }}</td>
+          <td><span class="badge">{{ network.info_type or 'Unknown' }}</span></td>
+          <td><span class="badge badge-secondary">{{ network.policy_general or 'Unknown' }}</span></td>
+          <td>
+            {% if network.website %}
+            <a href="{{ network.website }}" target="_blank" role="button" class="outline sm">Visit</a>
+            {% else %}
+            <span class="secondary">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}
 
-      // Modern color palettes
-      const modernColors = [
-        "#3b82f6",
-        "#10b981",
-        "#f59e0b",
-        "#ef4444",
-        "#8b5cf6",
-        "#06b6d4",
-        "#f97316",
-        "#84cc16",
-      ];
+{% block scripts %}
+<script>
+  // Modern Theme Colors for Charts
+  const colors = {
+    primary: '#3b82f6',
+    secondary: '#10b981',
+    accent: '#f59e0b',
+    background: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+    text: '#64748b'
+  };
 
-      const gradientColors = [
-        "rgba(59, 130, 246, 0.8)",
-        "rgba(16, 185, 129, 0.8)",
-        "rgba(245, 158, 11, 0.8)",
-        "rgba(239, 68, 68, 0.8)",
-        "rgba(139, 92, 246, 0.8)",
-        "rgba(6, 182, 212, 0.8)",
-        "rgba(249, 115, 22, 0.8)",
-        "rgba(132, 204, 22, 0.8)",
-      ];
+  /* Network Types Chart */
+  let networkTypesChart = null;
+  
+  async function loadNetworkTypesChart() {
+    const loading = document.getElementById("networkTypesLoading");
+    const canvas = document.getElementById("networkTypesChart");
+    const error = document.getElementById("networkTypesError");
 
-      // Network Types Chart Configuration
-      const networkTypesConfig = {
+    loading.style.display = "block";
+    canvas.style.display = "none";
+    error.style.display = "none";
+
+    try {
+      const response = await fetch("/api/network-types");
+      if (!response.ok) throw new Error("API Error");
+      const data = await response.json();
+
+      loading.style.display = "none";
+      canvas.style.display = "block";
+      
+      const ctx = canvas.getContext("2d");
+      if (networkTypesChart) networkTypesChart.destroy();
+
+      networkTypesChart = new Chart(ctx, {
         type: "doughnut",
         data: {
-          labels: [],
-          datasets: [
-            {
-              data: [],
-              backgroundColor: gradientColors,
-              borderColor: modernColors,
-              borderWidth: 2,
-              hoverOffset: 8,
-            },
-          ],
+          labels: data.labels,
+          datasets: [{
+            data: data.data,
+            backgroundColor: colors.background,
+            borderWidth: 0
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: "60%",
           plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                padding: 20,
-                usePointStyle: true,
-                font: {
-                  size: 12,
-                  weight: "500",
-                },
-              },
-            },
-            tooltip: {
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              titleColor: "#ffffff",
-              bodyColor: "#ffffff",
-              borderColor: "#3b82f6",
-              borderWidth: 1,
-              cornerRadius: 8,
-              callbacks: {
-                label: function (context) {
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = ((context.parsed / total) * 100).toFixed(
-                    1,
-                  );
-                  return `${context.label}: ${context.parsed} (${percentage}%)`;
-                },
-              },
-            },
-          },
-          animation: {
-            animateRotate: true,
-            duration: 1000,
-          },
-        },
-      };
-
-      // Prefixes Chart Configuration
-      const prefixesConfig = {
-        type: "bar",
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: "IPv4 Prefixes",
-              data: [],
-              backgroundColor: "rgba(59, 130, 246, 0.8)",
-              borderColor: "#3b82f6",
-              borderWidth: 2,
-              borderRadius: 6,
-              borderSkipped: false,
-            },
-            {
-              label: "IPv6 Prefixes",
-              data: [],
-              backgroundColor: "rgba(239, 68, 68, 0.8)",
-              borderColor: "#ef4444",
-              borderWidth: 2,
-              borderRadius: 6,
-              borderSkipped: false,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: "index",
-          },
-          scales: {
-            x: {
-              grid: {
-                color: "#f3f4f6",
-                borderColor: "#e5e7eb",
-                display: false,
-              },
-              ticks: {
-                maxRotation: 45,
-                color: "#6b7280",
-                font: {
-                  size: 11,
-                },
-              },
-            },
-            y: {
-              grid: {
-                color: "#f3f4f6",
-                borderColor: "#e5e7eb",
-              },
-              ticks: {
-                color: "#6b7280",
-              },
-            },
-          },
-          plugins: {
-            legend: {
-              labels: {
-                usePointStyle: true,
-                padding: 20,
-                font: {
-                  size: 12,
-                  weight: "500",
-                },
-              },
-            },
-            tooltip: {
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              titleColor: "#ffffff",
-              bodyColor: "#ffffff",
-              borderColor: "#3b82f6",
-              borderWidth: 1,
-              cornerRadius: 8,
-            },
-          },
-          animation: {
-            duration: 1000,
-            easing: "easeInOutQuart",
-          },
-        },
-      };
-
-      // Load Network Types Chart
-      async function loadNetworkTypesChart() {
-        const loading = document.getElementById("networkTypesLoading");
-        const canvas = document.getElementById("networkTypesChart");
-        const error = document.getElementById("networkTypesError");
-
-        loading.style.display = "flex";
-        canvas.style.display = "none";
-        error.style.display = "none";
-
-        try {
-          const response = await fetch("/api/network-types");
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-
-          const data = await response.json();
-
-          loading.style.display = "none";
-          canvas.style.display = "block";
-
-          const ctx = canvas.getContext("2d");
-          if (networkTypesChart) networkTypesChart.destroy();
-
-          networkTypesConfig.data.labels = data.labels;
-          networkTypesConfig.data.datasets[0].data = data.data;
-          networkTypesChart = new Chart(ctx, networkTypesConfig);
-        } catch (err) {
-          console.error("Error loading network types chart:", err);
-          loading.style.display = "none";
-          error.style.display = "block";
+            legend: { position: 'bottom' }
+          }
         }
-      }
-
-      // Load Prefixes Chart
-      async function loadPrefixesChart() {
-        const loading = document.getElementById("prefixesLoading");
-        const canvas = document.getElementById("prefixesChart");
-        const error = document.getElementById("prefixesError");
-
-        loading.style.display = "flex";
-        canvas.style.display = "none";
-        error.style.display = "none";
-
-        try {
-          const response = await fetch("/api/prefixes-distribution");
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-
-          const data = await response.json();
-
-          loading.style.display = "none";
-          canvas.style.display = "block";
-
-          const ctx = canvas.getContext("2d");
-          if (prefixesChart) prefixesChart.destroy();
-
-          prefixesConfig.data.labels = data.networks;
-          prefixesConfig.data.datasets[0].data = data.ipv4;
-          prefixesConfig.data.datasets[1].data = data.ipv6;
-          prefixesChart = new Chart(ctx, prefixesConfig);
-        } catch (err) {
-          console.error("Error loading prefixes chart:", err);
-          loading.style.display = "none";
-          error.style.display = "block";
-        }
-      }
-
-      // Initialize charts on page load
-      document.addEventListener("DOMContentLoaded", function () {
-        loadNetworkTypesChart();
-        loadPrefixesChart();
       });
-    </script>
-    <footer class="footer mt-auto py-3 bg-light">
-      <div class="container text-center">
-        <span class="text-muted">
-          <a
-            href="https://github.com/crazyuploader/NetViz"
-            target="_blank"
-            class="text-decoration-none text-muted"
-          >
-            <i class="bi bi-github me-2"></i>NetViz on GitHub
-          </a>
-        </span>
-      </div>
-    </footer>
-  </body>
-</html>
+    } catch (err) {
+      loading.style.display = "none";
+      error.style.display = "block";
+      console.error(err);
+    }
+  }
+
+  /* Prefixes Chart */
+  let prefixesChart = null;
+
+  async function loadPrefixesChart() {
+    const loading = document.getElementById("prefixesLoading");
+    const canvas = document.getElementById("prefixesChart");
+    const error = document.getElementById("prefixesError");
+
+    loading.style.display = "block";
+    canvas.style.display = "none";
+    error.style.display = "none";
+
+    try {
+      const response = await fetch("/api/prefixes-distribution");
+      if (!response.ok) throw new Error("API Error");
+      const data = await response.json();
+
+      loading.style.display = "none";
+      canvas.style.display = "block";
+
+      const ctx = canvas.getContext("2d");
+       if (prefixesChart) prefixesChart.destroy();
+
+      prefixesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.networks,
+          datasets: [
+            {
+              label: 'IPv4',
+              data: data.ipv4,
+              backgroundColor: colors.primary
+            },
+            {
+              label: 'IPv6',
+              data: data.secondary,
+              backgroundColor: colors.secondary
+            }
+          ]
+        },
+        options: {
+           responsive: true,
+           maintainAspectRatio: false,
+           interaction: { mode: 'index', intersect: false },
+           scales: {
+             x: { stacked: false },
+             y: { stacked: false }
+           }
+        }
+      });
+    } catch (err) {
+       loading.style.display = "none";
+       error.style.display = "block";
+       console.error(err);
+    }
+  }
+
+  // Init
+  document.addEventListener('DOMContentLoaded', () => {
+    loadNetworkTypesChart();
+    loadPrefixesChart();
+  });
+</script>
+{% endblock %}
