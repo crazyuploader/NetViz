@@ -24,6 +24,9 @@ use crate::data::load_network_data;
 use crate::fetcher::fetch_and_save_peeringdb_data;
 use crate::models::{Network, Stats};
 
+/// Path to the network data file from PeeringDB.
+const NETWORK_DATA_PATH: &str = "data/peeringdb/net.json";
+
 /// Application configuration from environment variables.
 #[derive(Debug)]
 struct Config {
@@ -91,7 +94,7 @@ async fn main() {
     let config = Config::from_env();
 
     // Fetch data from PeeringDB if not cached locally
-    if !std::path::Path::new("data/peeringdb/net.json").exists() {
+    if !std::path::Path::new(NETWORK_DATA_PATH).exists() {
         info!("Fetching initial data from PeeringDB...");
         if let Err(e) = fetch_and_save_peeringdb_data().await {
             error!("Failed to fetch initial data: {}", e);
@@ -134,10 +137,7 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(&config.bind_address)
         .await
-        .unwrap_or_else(|e| {
-            error!("Failed to bind to {}: {}", config.bind_address, e);
-            std::process::exit(1);
-        });
+        .expect("TCP listener must bind to configured address for server to start");
 
     info!("Server listening on http://{}", config.bind_address);
 

@@ -27,10 +27,16 @@ pub struct Network {
 }
 
 /// Statistics computed from network data.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+///
+/// Aggregates counts of networks by type, policy, and geographic scope.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Stats {
+    /// Total number of networks in the dataset.
     pub total_networks: usize,
+    /// Count of networks grouped by info_type (e.g., "NSP", "Cable/DSL/ISP").
     pub network_types: std::collections::HashMap<String, usize>,
+    /// Count of networks grouped by peering policy (e.g., "Open", "Selective").
     pub policy_types: std::collections::HashMap<String, usize>,
+    /// Count of networks grouped by geographic scope (e.g., "Regional", "Global").
     pub scopes: std::collections::HashMap<String, usize>,
 }

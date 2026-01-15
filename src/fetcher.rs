@@ -16,8 +16,20 @@ const OUTPUT_DIR: &str = "data/peeringdb";
 
 /// Fetches all data from PeeringDB API and saves as JSON files.
 ///
-/// Creates output directory, discovers endpoints from API index,
-/// and downloads each dataset.
+/// Creates the output directory if it does not exist, discovers available
+/// endpoints from the API index, and downloads each dataset. Individual
+/// endpoint failures are logged but do not fail the overall operation.
+///
+/// # Returns
+///
+/// * `Ok(())` - All available endpoints were processed (some may have failed)
+/// * `Err(NetVizError)` - Critical failure (cannot create directory, HTTP client, or API index)
+///
+/// # Errors
+///
+/// Returns `NetVizError::Io` if the output directory cannot be created.
+/// Returns `NetVizError::HttpRequest` if the API index request fails.
+/// Returns `NetVizError::InvalidApiResponse` if the API index format is unexpected.
 pub async fn fetch_and_save_peeringdb_data() -> Result<(), NetVizError> {
     let output_path = PathBuf::from(OUTPUT_DIR);
     fs::create_dir_all(&output_path)?;
