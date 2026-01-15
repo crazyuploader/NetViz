@@ -32,7 +32,7 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::E
 
     // Build HTTP client with custom User-Agent (some APIs require this)
     let client = reqwest::Client::builder()
-        .user_agent("NetViz/0.1.0")
+        .user_agent("NetViz/1.0.0")
         .timeout(Duration::from_secs(10))
         .build()?;
 
