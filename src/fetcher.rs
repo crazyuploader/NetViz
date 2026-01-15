@@ -4,6 +4,7 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 use tracing::{error, info, warn};
 
 /// Base URL for the PeeringDB API
@@ -32,6 +33,7 @@ pub async fn fetch_and_save_peeringdb_data() -> Result<(), Box<dyn std::error::E
     // Build HTTP client with custom User-Agent (some APIs require this)
     let client = reqwest::Client::builder()
         .user_agent("NetViz/0.1.0")
+        .timeout(Duration::from_secs(10))
         .build()?;
 
     info!("Fetching API index from {}...", BASE_API_URL);

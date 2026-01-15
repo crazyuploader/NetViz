@@ -249,8 +249,8 @@ async fn networks_list(
     let page = pagination.page.unwrap_or(1).max(1);
     let per_page = pagination.per_page.unwrap_or(25).clamp(1, 100);
 
-    // Integer division with ceiling: (a + b - 1) / b
-    let total_pages = (total_networks + per_page - 1) / per_page;
+    // Integer division with ceiling using built-in method
+    let total_pages = total_networks.div_ceil(per_page);
 
     // Calculate slice indices safely using saturating arithmetic
     let start_index = (page - 1).saturating_mul(per_page);
@@ -298,11 +298,11 @@ async fn search_networks(
             .iter()
             // `.filter()` keeps only items where the closure returns true
             .filter(|network| {
-                // `map_or(false, ...)` returns false if None, otherwise evaluates closure
-                let matches_asn = query.asn.map_or(false, |asn| network.asn == asn);
+                // `map_or` replaced with direct comparison
+                let matches_asn = query.asn == Some(network.asn);
                 let matches_name = search_name
                     .as_ref()
-                    .map_or(false, |name| network.name.to_lowercase().contains(name));
+                    .is_some_and(|name| network.name.to_lowercase().contains(name));
                 matches_asn || matches_name // Match if either condition is true
             })
             .collect()
