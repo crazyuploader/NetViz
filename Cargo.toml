@@ -18,3 +18,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 itertools = "0.14"
 thiserror = "2.0"
 anyhow = "1.0"
+polars = { version = "0.45", features = ["lazy", "serde", "json"] }
