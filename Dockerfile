@@ -1,8 +1,8 @@
 # Build stage
-FROM rust:1.94-slim AS builder
+FROM rust:1.94-alpine AS builder
 
 # Add build dependencies
-RUN apt-get update && apt-get install -y pkg-config libssl-dev build-essential
+RUN apk add --no-cache musl-dev pkgconfig
 
 WORKDIR /app
 COPY . .
@@ -11,16 +11,13 @@ COPY . .
 RUN cargo build --release
 
 # Run stage
-FROM debian:bookworm-slim
+FROM alpine:3.21
 
 # Set Time Zone to IST
 ENV TZ="Asia/Kolkata"
 
 # Add required runtime packages
-RUN apt-get update && \
-    apt-get install --yes --no-install-recommends \
-    curl ca-certificates openssl && \
-    rm -rf /var/lib/apt/lists/* /tmp/*
+RUN apk add --no-cache curl ca-certificates tzdata
 
 # Set Working Directory
 WORKDIR /app
@@ -32,7 +29,7 @@ COPY --from=builder /app/target/release/netviz /app/netviz
 COPY templates /app/templates
 
 # Add user
-RUN groupadd --system netvizgroup && useradd --system --gid netvizgroup netvizuser --create-home
+RUN addgroup -S netvizgroup && adduser -S netvizuser -G netvizgroup
 
 # Create data directory and set permissions
 RUN mkdir -p /app/data/peeringdb && chown -R netvizuser:netvizgroup /app
