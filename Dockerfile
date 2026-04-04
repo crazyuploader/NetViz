@@ -11,7 +11,7 @@ COPY . .
 RUN cargo build --release
 
 # Run stage
-FROM alpine:3.21
+FROM alpine:3.23
 
 # Set Time Zone to IST
 ENV TZ="Asia/Kolkata"
