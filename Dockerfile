@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.99-alpine AS builder
+FROM rust:1.100-alpine AS builder
 
 # Add build dependencies
 RUN apk add --no-cache musl-dev pkgconfig
